@@ -39,7 +39,7 @@ body {
   overflow: hidden;
 }
 
-/* ── SHELL GRID (3 колонки: Аккаунты слева, чат в центре, поиск справа) ── */
+/* ── SHELL GRID (3 колонки) ── */
 .shell {
   width: 100%;
   height: 100vh;
@@ -92,6 +92,8 @@ body {
 .users-bar {
   display: flex;
   flex-direction: column;
+  gap: 6px;
+  padding: 10px 8px;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
@@ -102,65 +104,6 @@ body {
 .users-bar::-webkit-scrollbar-track { background: transparent; }
 .users-bar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-/* ── АККАУНТ-ГРУППА (КАТЕГОРИИ ИЗ INDEX 5) ── */
-.account-group { 
-  border-bottom: 1px solid var(--border-lite); 
-}
-
-.account-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  cursor: pointer;
-  background: var(--panel);
-  transition: background 0.15s;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  user-select: none;
-}
-.account-row:hover { background: rgba(255,255,255,0.05); }
-.account-row.open  { background: rgba(90,171,240,0.08); }
-
-.account-row .acc-avatar {
-  width: 28px; height: 28px;
-  border-radius: 4px;
-  background: rgba(90,171,240,0.15);
-  color: var(--accent-hi);
-  font-family: 'Unbounded', sans-serif;
-  font-size: 9px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  border: 1px solid var(--border);
-}
-.account-row .acc-body { flex: 1; min-width: 0; }
-.account-row .acc-name {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 10px; font-weight: 700;
-  color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.account-row .acc-sub {
-  font-size: 10px; color: var(--text-dim);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.account-row .acc-toggle {
-  font-size: 10px; color: var(--text-dim);
-  transition: transform 0.2s;
-  flex-shrink: 0;
-}
-.account-row.open .acc-toggle { transform: rotate(90deg); }
-
-.account-users {
-  display: none;
-  flex-direction: column;
-  gap: 4px;
-  padding: 5px 7px 7px 7px;
-  background: var(--panel-deep);
-}
-.account-users.open { display: flex; }
-
 /* Loading skeleton chips */
 .chip-skeleton {
   width: 100%;
@@ -170,10 +113,9 @@ body {
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
   flex-shrink: 0;
-  margin: 5px 0;
 }
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
+  0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
 
@@ -394,9 +336,7 @@ body {
   border: 1px solid rgba(255,92,106,0.3);
 }
 
-.msg.is-deleted {
-  opacity: 0.52;
-}
+.msg.is-deleted { opacity: 0.52; }
 .msg.is-deleted .msg-text {
   text-decoration: line-through;
   text-decoration-color: var(--red);
@@ -423,10 +363,7 @@ body {
   margin-bottom: 2px;
 }
 
-.msg-type-icon {
-  font-size: 11px;
-  opacity: 0.65;
-}
+.msg-type-icon { font-size: 11px; opacity: 0.65; }
 
 .msg.highlighted {
   background: rgba(90,171,240,0.25) !important;
@@ -537,9 +474,7 @@ mark {
   margin-bottom: 3px;
   opacity: 0.8;
 }
-.search-result-item .result-account { font-size: 9px; color: var(--text-dim); margin-bottom: 2px; }
 
-/* Пользователь в глобальном поиске */
 .user-result-chip {
   display: flex;
   align-items: center;
@@ -562,7 +497,6 @@ mark {
 .user-result-chip .urc-body { flex: 1; min-width: 0; }
 .user-result-chip .urc-name { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .user-result-chip .urc-sub  { font-size: 10px; color: var(--text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.user-result-chip .urc-acct { font-size: 9px; color: var(--text-dim); margin-top: 1px; }
 
 .no-results {
   padding: 20px;
@@ -590,10 +524,7 @@ mark {
 .state-msg .icon { font-size: 28px; opacity: 0.3; }
 
 /* ── МЕДИА В СООБЩЕНИЯХ ── */
-.media-wrap {
-  margin-bottom: 4px;
-  max-width: 100%;
-}
+.media-wrap { margin-bottom: 4px; max-width: 100%; }
 
 .media-photo {
   display: block;
@@ -618,7 +549,6 @@ mark {
   background: #000;
 }
 
-/* Кружок (video_note) */
 .media-circle {
   display: block;
   width: 200px;
@@ -629,7 +559,6 @@ mark {
   background: #000;
 }
 
-/* Голосовое / аудио */
 .media-voice {
   display: flex;
   align-items: center;
@@ -648,7 +577,6 @@ mark {
   accent-color: var(--accent-hi);
 }
 
-/* Документ */
 .media-doc {
   display: flex;
   align-items: center;
@@ -661,10 +589,7 @@ mark {
   max-width: 280px;
   transition: border-color 0.15s, background 0.15s;
 }
-.media-doc:hover {
-  border-color: var(--accent-hi);
-  background: var(--accent-glow);
-}
+.media-doc:hover { border-color: var(--accent-hi); background: var(--accent-glow); }
 .doc-icon { font-size: 22px; flex-shrink: 0; }
 .doc-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .doc-name {
@@ -677,7 +602,6 @@ mark {
 }
 .doc-dl { font-size: 10px; color: var(--accent-hi); }
 
-/* Стикер */
 .media-sticker {
   display: block;
   width: 120px;
@@ -685,7 +609,6 @@ mark {
   object-fit: contain;
 }
 
-/* Подпись к медиа */
 .media-caption {
   font-size: 13px;
   line-height: 1.5;
@@ -735,9 +658,11 @@ mark {
 <body>
 
 <div class="shell">
+
+  <!-- ── ЛЕВАЯ ПАНЕЛЬ ПОЛЬЗОВАТЕЛЕЙ ── -->
   <div class="accounts-zone">
     <div class="accounts-header">
-      <h3>👥 Аккаунты</h3>
+      <h3>👥 Пользователи</h3>
       <span class="count-badge" id="accountsCount">0</span>
     </div>
     <div class="users-bar" id="usersBar">
@@ -748,6 +673,7 @@ mark {
     </div>
   </div>
 
+  <!-- ── ЦЕНТРАЛЬНАЯ ЗОНА СООБЩЕНИЙ ── -->
   <div class="messages-zone" id="messagesZone">
     <div class="no-user-placeholder" id="noUserPlaceholder">
       <div class="icon">💬</div>
@@ -767,6 +693,7 @@ mark {
     </div>
   </div>
 
+  <!-- ── ПРАВАЯ ПАНЕЛЬ ПОИСКА ── -->
   <div class="search-zone">
     <div class="search-header">
       <h3>🔍 Поиск</h3>
@@ -780,6 +707,7 @@ mark {
       <div class="no-results">Введите запрос для поиска</div>
     </div>
   </div>
+
 </div>
 
 <!-- Оверлей для просмотра фото -->
@@ -788,14 +716,22 @@ mark {
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════════════════════════════
+// TELEGRAM MINI APP INIT
+// ══════════════════════════════════════════════════════════════════════════════
 if (window.Telegram && window.Telegram.WebApp) {
   window.Telegram.WebApp.ready();
   window.Telegram.WebApp.expand();
 }
 
-const API_BASE = 'https://burilowmisha2045-spec.github.io/Bot_Parser/';
-let accounts = []; // [ { id, name, initials, username?, open?, users:[] } ]
-let messages = {}; // { userId: [...] }
+// ══════════════════════════════════════════════════════════════════════════════
+// ✅ ИСПРАВЛЕНИЕ 1: Правильный API из messenger.html (рабочий репозиторий)
+// ══════════════════════════════════════════════════════════════════════════════
+const API_BASE = 'https://burilowmisha2045-spec.github.io/Bot_Parser';
+
+// ✅ ИСПРАВЛЕНИЕ 2: Плоская структура users[] (как в messenger.html, а не accounts[])
+let users      = [];   // [{ id, name, initials, username?, biz_id, raw }]
+let messages   = {};   // { userId: [...] }
 let activeUser = null;
 
 // ══════════════════════════════════════
@@ -807,124 +743,97 @@ async function fetchUsers() {
   return resp.json();
 }
 
-async function fetchMessages(bizId, encoded) {
-  const resp = await fetch(`${API_BASE}/api/messages/${encodeURIComponent(bizId)}/${encoded}`);
+// ✅ ИСПРАВЛЕНИЕ 3: encodeURIComponent применяется ВНУТРИ функции (как в messenger.html)
+async function fetchMessages(bizId, raw) {
+  const resp = await fetch(
+    `${API_BASE}/api/messages/${encodeURIComponent(bizId)}/${encodeURIComponent(raw)}`
+  );
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   return resp.json();
 }
 
+// ══════════════════════════════════════
+// ИНИЦИАЛИЗАЦИЯ
+// ══════════════════════════════════════
 async function init() {
   try {
-    accounts = await fetchUsers();
-    
-    // По умолчанию раскрываем все аккаунты
-    accounts.forEach(acc => {
-      if (acc.open === undefined) acc.open = true;
-    });
-    
+    users = await fetchUsers();
     buildUsersBar();
   } catch (err) {
     console.error('Ошибка загрузки пользователей:', err);
     const bar = document.getElementById('usersBar');
-    bar.innerHTML = `<div style="color:var(--red);font-size:11px;padding:14px;font-family:'Onest',sans-serif;">⚠️ Не удалось загрузить пользователей. Проверьте API.</div>`;
+    bar.innerHTML = `<div style="color:var(--red);font-size:11px;padding:14px;font-family:'Onest',sans-serif;">
+      ⚠️ Не удалось загрузить пользователей. Проверьте API.
+    </div>`;
     document.getElementById('accountsCount').textContent = '0';
   }
 }
 
 // ══════════════════════════════════════
-// ПОСТРОЕНИЕ ДРЕВА АККАУНТОВ И ПОЛЬЗОВАТЕЛЕЙ
+// ПОСТРОЕНИЕ СПИСКА ПОЛЬЗОВАТЕЛЕЙ
+// (дизайн чипов из index.html, плоская структура из messenger.html)
 // ══════════════════════════════════════
 function buildUsersBar() {
   const bar = document.getElementById('usersBar');
   bar.innerHTML = '';
-  
-  document.getElementById('accountsCount').textContent = accounts.length;
-  
-  if (!accounts.length) {
-    bar.innerHTML = `<div class="no-results" style="padding:20px">Нет аккаунтов</div>`;
+
+  document.getElementById('accountsCount').textContent = users.length;
+
+  if (!users.length) {
+    bar.innerHTML = `<div class="no-results" style="padding:20px">Нет пользователей</div>`;
     return;
   }
 
-  accounts.forEach(acc => {
-    const group = document.createElement('div');
-    group.className = 'account-group';
+  // Считаем дубликаты имён
+  const nameCounts = {};
+  users.forEach(u => { nameCounts[u.name] = (nameCounts[u.name] || 0) + 1; });
 
-    // 1. Строка аккаунта (категории)
-    const row = document.createElement('div');
-    row.className = 'account-row' + (acc.open ? ' open' : '');
-    row.innerHTML = `
-      <div class="acc-avatar">${esc(acc.initials)}</div>
-      <div class="acc-body">
-        <div class="acc-name">${esc(acc.name)}</div>
-        ${acc.username ? `<div class="acc-sub">@${esc(acc.username)}</div>` : `<div class="acc-sub">${acc.users.length} чатов</div>`}
+  users.forEach(u => {
+    const chip     = document.createElement('div');
+    const isActive = activeUser && activeUser.id === u.id;
+    chip.className = 'user-chip' + (isActive ? ' active' : '');
+    chip.dataset.id = u.id;
+
+    const hasDupe  = nameCounts[u.name] > 1;
+    const nameHtml = hasDupe
+      ? `${esc(u.name)} <span style="opacity:0.5;font-size:10px">#${u.id.slice(-4)}</span>`
+      : esc(u.name);
+
+    chip.innerHTML = `
+      <div class="avatar">${esc(u.initials)}</div>
+      <div class="chip-body">
+        <div class="chip-name">${nameHtml}</div>
+        ${u.username ? `<div class="chip-sub">@${esc(u.username)}</div>` : ''}
       </div>
-      <span class="acc-toggle">›</span>
     `;
-    row.onclick = () => {
-      acc.open = !acc.open;
-      buildUsersBar();
-    };
-    group.appendChild(row);
 
-    // 2. Контейнер пользователей
-    const userList = document.createElement('div');
-    userList.className = 'account-users' + (acc.open ? ' open' : '');
-
-    if (acc.open) {
-      // Считаем дубликаты имён внутри текущего аккаунта
-      const nameCounts = {};
-      acc.users.forEach(u => {
-        nameCounts[u.name] = (nameCounts[u.name] || 0) + 1;
-      });
-
-      acc.users.forEach(u => {
-        const chip = document.createElement('div');
-        const isActive = activeUser && activeUser.id === u.id;
-        chip.className = 'user-chip' + (isActive ? ' active' : '');
-        chip.dataset.id = u.id;
-
-        const hasDupe = nameCounts[u.name] > 1;
-        const nameHtml = hasDupe 
-          ? `${esc(u.name)} <span style="opacity:0.5;font-size:10px">#${u.id.slice(-4)}</span>` 
-          : esc(u.name);
-
-        chip.innerHTML = `
-          <div class="avatar">${esc(u.initials)}</div>
-          <div class="chip-body">
-            <div class="chip-name">${nameHtml}</div>
-            ${u.username ? `<div class="chip-sub">@${esc(u.username)}</div>` : ''}
-          </div>
-        `;
-        
-        chip.onclick = () => selectUser(u);
-        userList.appendChild(chip);
-      });
-    }
-    
-    group.appendChild(userList);
-    bar.appendChild(group);
+    chip.onclick = () => selectUser(u);
+    bar.appendChild(chip);
   });
 
-  // Автоскролл к активному чипу чата
+  // Автоскролл к активному чипу
   requestAnimationFrame(() => {
     const active = bar.querySelector('.user-chip.active');
     if (active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 }
 
+// ══════════════════════════════════════
+// ВЫБОР ПОЛЬЗОВАТЕЛЯ И ЗАГРУЗКА ДИАЛОГА
+// ══════════════════════════════════════
 async function selectUser(user) {
   activeUser = user;
   buildUsersBar();
-  
+
   document.getElementById('noUserPlaceholder').style.display = 'none';
   const chatArea = document.getElementById('chatArea');
   chatArea.classList.add('visible');
-  
-  document.getElementById('headerAvatar').textContent = user.initials;
-  document.getElementById('headerName').textContent = user.name;
-  document.getElementById('headerStatus').textContent = 'загрузка…';
-  document.getElementById('messagesList').innerHTML = loadingState();
-  
+
+  document.getElementById('headerAvatar').textContent  = user.initials;
+  document.getElementById('headerName').textContent    = user.name;
+  document.getElementById('headerStatus').textContent  = 'загрузка…';
+  document.getElementById('messagesList').innerHTML    = loadingState();
+
   clearSearch();
   await loadMessages(user);
 }
@@ -933,18 +842,22 @@ async function loadMessages(user) {
   try {
     const btn = document.getElementById('refreshBtn');
     btn.classList.add('spinning');
-    
+
     const msgs = await fetchMessages(user.biz_id, user.raw);
     messages[user.id] = msgs;
-    
+
     if (activeUser && activeUser.id === user.id) {
       renderMessages(msgs);
-      document.getElementById('headerStatus').textContent = `всего ${msgs.length}`;
+      const last = msgs.length ? msgs[msgs.length - 1] : null;
+      document.getElementById('headerStatus').textContent = last
+        ? `последнее: ${formatTs(last.ts)}`
+        : `${msgs.length} сообщений`;
     }
   } catch (err) {
     console.error(err);
     if (activeUser && activeUser.id === user.id) {
-      document.getElementById('messagesList').innerHTML = `<div class="state-msg"><div class="icon">⚠️</div>Ошибка загрузки истории</div>`;
+      document.getElementById('messagesList').innerHTML =
+        `<div class="state-msg"><div class="icon">⚠️</div>Ошибка загрузки истории</div>`;
       document.getElementById('headerStatus').textContent = 'ошибка';
     }
   } finally {
@@ -956,17 +869,8 @@ function refreshMessages() {
   if (activeUser) loadMessages(activeUser);
 }
 
-function loadingState() {
-  return `
-    <div class="state-msg">
-      <div class="icon" style="animation: spin 1s linear infinite">🔄</div>
-      Загрузка диалога…
-    </div>
-  `;
-}
-
 // ══════════════════════════════════════
-// ОТРИСОВКА СООБЩЕНИЙ ЧАТА
+// ОТРИСОВКА МЕДИА (из index.html — фото, видео, аудио, документы, стикеры)
 // ══════════════════════════════════════
 function buildMediaBlock(msg) {
   const type = msg.m_type;
@@ -1051,6 +955,9 @@ function openMediaFull(src) {
   ov.style.display = 'flex';
 }
 
+// ══════════════════════════════════════
+// ОТРИСОВКА СООБЩЕНИЙ (из index.html — с медиа-блоками)
+// ══════════════════════════════════════
 function renderMessages(msgs = null, highlight = '') {
   const list = document.getElementById('messagesList');
   if (!msgs && activeUser) msgs = messages[activeUser.id] || [];
@@ -1063,32 +970,27 @@ function renderMessages(msgs = null, highlight = '') {
 
   list.innerHTML = '';
   msgs.forEach((msg, idx) => {
-    const div = document.createElement('div');
-    const isMatched = highlight && (msg.text || '').toLowerCase().includes(highlight.toLowerCase());
-    div.className = 'msg incoming' + (msg.is_deleted ? ' is-deleted' : '') + (isMatched ? ' highlighted' : '');
+    const div      = document.createElement('div');
+    const isMatch  = highlight && (msg.text || '').toLowerCase().includes(highlight.toLowerCase());
+    div.className  = 'msg incoming' +
+      (msg.is_deleted ? ' is-deleted' : '') +
+      (isMatch ? ' highlighted' : '');
     div.dataset.idx = idx;
 
-    // Иконка типа (только для не-медиа или когда нет URL)
-    const hasMedia = msg.m_type && msg.m_type !== 'text';
+    const hasMedia  = msg.m_type && msg.m_type !== 'text';
     const typeIcons = { text: '', photo: '🖼 ', voice: '🎙 ', video: '🎥 ',
-                        video_note: '⭕ ', document: '📄 ', audio: '🎵 ',
-                        sticker: '🎉 ' };
-    const typeIcon = hasMedia ? (typeIcons[msg.m_type] || '📎 ') : '';
+                        video_note: '⭕ ', document: '📄 ', audio: '🎵 ', sticker: '🎉 ' };
+    const typeIcon  = hasMedia ? (typeIcons[msg.m_type] || '📎 ') : '';
 
     let displayText = esc(msg.text || (msg.is_deleted ? '[текст удалён]' : ''));
-
     if (highlight) {
       const rx = new RegExp(`(${escRx(highlight)})`, 'gi');
       displayText = displayText.replace(rx, '<mark>$1</mark>');
     }
 
     let badges = '';
-    if (msg.is_deleted) {
-      badges += `<span class="badge badge-deleted">🗑 Удалено</span>`;
-    }
-    if (msg.is_edited && !msg.is_deleted) {
-      badges += `<span class="badge badge-edited">✏️ Отредактировано</span>`;
-    }
+    if (msg.is_deleted)               badges += `<span class="badge badge-deleted">🗑 Удалено</span>`;
+    if (msg.is_edited && !msg.is_deleted) badges += `<span class="badge badge-edited">✏️ Отредактировано</span>`;
 
     let oldTextBlock = '';
     if (msg.is_edited && !msg.is_deleted && msg.old_text) {
@@ -1104,10 +1006,7 @@ function renderMessages(msgs = null, highlight = '') {
         </div>`;
     }
 
-    // Медиа-блок (фото/видео/аудио/документ и т.д.)
-    const mediaBlock = msg.is_deleted ? '' : buildMediaBlock(msg);
-
-    // Подпись к медиа — только если есть и медиа, и текст
+    const mediaBlock   = msg.is_deleted ? '' : buildMediaBlock(msg);
     const captionBlock = (mediaBlock && displayText)
       ? `<div class="media-caption">${displayText}</div>`
       : (displayText ? `<span class="msg-text">${displayText}</span>` : '');
@@ -1127,12 +1026,12 @@ function renderMessages(msgs = null, highlight = '') {
 }
 
 // ══════════════════════════════════════
-// ГЛОБАЛЬНЫЙ ПОИСК ПО СООБЩЕНИЯМ И ЮЗЕРАМ
+// ГЛОБАЛЬНЫЙ ПОИСК (из index.html — по пользователям И сообщениям)
 // ══════════════════════════════════════
 function doSearch() {
-  const query = document.getElementById('searchInput').value.trim();
+  const query     = document.getElementById('searchInput').value.trim();
   const resultsEl = document.getElementById('searchResults');
-  const countEl = document.getElementById('searchCount');
+  const countEl   = document.getElementById('searchCount');
 
   if (!query) {
     resultsEl.innerHTML = '<div class="no-results">Введите запрос для поиска</div>';
@@ -1142,28 +1041,22 @@ function doSearch() {
   }
 
   const q = query.toLowerCase();
-  
-  // 1. Ищем пользователей по всем аккаунтам
-  const userMatches = [];
-  accounts.forEach(acc => {
-    acc.users.forEach(u => {
-      const uName = (u.name || '').toLowerCase();
-      const uUser = (u.username || '').toLowerCase();
-      if (uName.includes(q) || uUser.includes(q) || ('@' + uUser).includes(q)) {
-        userMatches.push({ user: u, acc: acc });
-      }
-    });
+
+  // 1. Поиск пользователей по имени и username
+  const userMatches = users.filter(u => {
+    const uName = (u.name || '').toLowerCase();
+    const uUser = (u.username || '').toLowerCase();
+    return uName.includes(q) || uUser.includes(q) || ('@' + uUser).includes(q);
   });
 
-  // 2. Ищем сообщения в загруженной кеш-истории
+  // 2. Поиск сообщений в загруженном кеше
   const msgMatches = [];
   Object.keys(messages).forEach(userId => {
-    const userObj = findUserGlobal(userId);
+    const userObj = users.find(u => String(u.id) === String(userId));
     if (!userObj) return;
     messages[userId].forEach((msg, idx) => {
-      if ((msg.text || '').toLowerCase().includes(q)) {
-        msgMatches.push({ msg, userId, idx, user: userObj });
-      }
+      const hay = ((msg.text || '') + ' ' + (msg.old_text || '')).toLowerCase();
+      if (hay.includes(q)) msgMatches.push({ msg, userId, idx, user: userObj });
     });
   });
 
@@ -1176,19 +1069,17 @@ function doSearch() {
     return;
   }
 
-  // Отрендерить найденных юзеров
+  // Отрисовка найденных пользователей
   if (userMatches.length) {
     const label = document.createElement('div');
     label.className = 'search-section-label';
     label.textContent = 'Пользователи';
     resultsEl.appendChild(label);
 
-    userMatches.forEach(item => {
-      const u = item.user;
-      const rx = new RegExp(`(${escRx(q.replace(/^@/, ''))})`, 'gi');
+    userMatches.forEach(u => {
+      const rx     = new RegExp(`(${escRx(q.replace(/^@/, ''))})`, 'gi');
       const hiName = esc(u.name || '').replace(rx, '<mark>$1</mark>');
       const hiUser = u.username ? esc('@' + u.username).replace(rx, '<mark>$1</mark>') : '';
-      const acctLine = `<div class="urc-acct">📱 ${esc(item.acc.name)}</div>`;
 
       const chip = document.createElement('div');
       chip.className = 'user-result-chip';
@@ -1197,21 +1088,14 @@ function doSearch() {
         <div class="urc-body">
           <div class="urc-name">${hiName}</div>
           ${hiUser ? `<div class="urc-sub">${hiUser}</div>` : ''}
-          ${acctLine}
         </div>
       `;
-      chip.onclick = async () => {
-        if (!item.acc.open) {
-          item.acc.open = true;
-          buildUsersBar();
-        }
-        await selectUser(u);
-      };
+      chip.onclick = () => selectUser(u);
       resultsEl.appendChild(chip);
     });
   }
 
-  // Отрендерить найденные сообщения
+  // Отрисовка найденных сообщений
   if (msgMatches.length) {
     const label = document.createElement('div');
     label.className = 'search-section-label';
@@ -1222,9 +1106,8 @@ function doSearch() {
       const div = document.createElement('div');
       div.className = 'search-result-item';
 
-      let textSnippet = esc(item.msg.text || '');
-      const rx = new RegExp(`(${escRx(q)})`, 'gi');
-      textSnippet = textSnippet.replace(rx, '<mark>$1</mark>');
+      const rx          = new RegExp(`(${escRx(q)})`, 'gi');
+      const textSnippet = esc(item.msg.text || '').replace(rx, '<mark>$1</mark>');
 
       div.innerHTML = `
         <div class="result-from">👤 ${esc(item.user.name)}</div>
@@ -1233,9 +1116,7 @@ function doSearch() {
       `;
 
       div.onclick = async () => {
-        if (activeUser?.id !== item.userId) {
-          await selectUser(item.user);
-        }
+        if (activeUser?.id !== item.userId) await selectUser(item.user);
         renderMessages(messages[item.userId], query);
         setTimeout(() => {
           const target = document.querySelector(`.msg[data-idx="${item.idx}"]`);
@@ -1247,16 +1128,8 @@ function doSearch() {
   }
 }
 
-function findUserGlobal(id) {
-  for (const acc of accounts) {
-    const found = acc.users.find(u => String(u.id) === String(id));
-    if (found) return found;
-  }
-  return null;
-}
-
 function clearSearch() {
-  document.getElementById('searchInput').value = '';
+  document.getElementById('searchInput').value     = '';
   document.getElementById('searchResults').innerHTML = '<div class="no-results">Введите запрос для поиска</div>';
   document.getElementById('searchCount').textContent = '';
   if (activeUser) renderMessages();
@@ -1283,17 +1156,23 @@ function formatTs(ts) {
   try {
     const d = new Date(ts.replace(' ', 'T'));
     if (isNaN(d)) return ts;
-    const today = new Date();
+    const today   = new Date();
     const sameDay = d.toDateString() === today.toDateString();
-    if (sameDay) {
-      return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    }
+    if (sameDay) return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
       + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  } catch (e) { return ts; }
+  } catch { return ts; }
 }
 
-// Запуск приложения
+function loadingState() {
+  return `
+    <div class="state-msg">
+      <div class="icon" style="animation:spin 0.8s linear infinite;display:inline-block">⟳</div>
+      Загрузка диалога…
+    </div>`;
+}
+
+// Запуск
 init();
 </script>
 </body>
