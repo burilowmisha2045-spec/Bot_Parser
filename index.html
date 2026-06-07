@@ -39,7 +39,7 @@ body {
   overflow: hidden;
 }
 
-/* ── SHELL GRID ── */
+/* ── SHELL GRID (3 колонки: Аккаунты слева, чат в центре, поиск справа) ── */
 .shell {
   width: 100%;
   height: 100vh;
@@ -47,38 +47,10 @@ body {
   background: var(--surface);
   overflow: hidden;
   display: grid;
-  grid-template-rows: 56px 1fr;
   grid-template-columns: 240px 1fr 260px;
 }
 
-/* ── TOP BAR ── */
-.bar-wrapper {
-  grid-column: 1 / 4;
-  background: var(--panel);
-  border-bottom: 2px solid var(--border);
-  height: 56px;
-  overflow: hidden;
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-}
-
-.bar-title {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.bar-title .icon {
-  font-size: 18px;
-}
-
-/* ── ACCOUNTS ZONE (левая панель) ── */
+/* ── ЛЕВАЯ ПАНЕЛЬ АККАУНТОВ ── */
 .accounts-zone {
   background: var(--panel-deep);
   border-right: 2px solid var(--border);
@@ -89,248 +61,178 @@ body {
 
 .accounts-header {
   background: var(--panel);
-  padding: 11px 12px;
+  padding: 15px 12px;
   flex-shrink: 0;
   border-bottom: 2px solid var(--border);
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .accounts-header h3 {
   font-family: 'Unbounded', sans-serif;
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 9px; font-weight: 700;
   color: var(--text-soft);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  margin-bottom: 9px;
 }
 
-.accounts-search-wrap {
-  display: flex;
-  gap: 5px;
-}
-
-.accounts-search-wrap input {
-  flex: 1;
-  background: var(--panel-deep);
-  border: 2px solid var(--border);
-  border-radius: 5px;
-  padding: 7px 11px;
-  font-family: 'Onest', sans-serif;
-  font-size: 12px;
-  color: var(--text);
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.accounts-search-wrap input::placeholder { color: var(--text-dim); }
-.accounts-search-wrap input:focus { border-color: var(--accent-hi); }
-
-.accounts-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
-}
-
-.accounts-list::-webkit-scrollbar { width: 4px; }
-.accounts-list::-webkit-scrollbar-track { background: transparent; }
-.accounts-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
-/* Аккаунт (карточка) */
-.account-card {
-  background: var(--panel);
-  border: 2px solid var(--border-lite);
-  border-radius: 6px;
-  overflow: hidden;
-  transition: border-color 0.15s, box-shadow 0.15s;
+.accounts-header .count-badge {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 9px; font-weight: 700;
+  color: var(--accent-hi);
+  background: rgba(90,171,240,0.12);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 6px;
   flex-shrink: 0;
 }
 
-.account-card:hover {
-  border-color: var(--accent-hi);
-  box-shadow: 0 0 0 1px var(--accent-hi), 0 4px 14px rgba(0,0,0,0.4);
+.users-bar {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  flex: 1;
+}
+.users-bar::-webkit-scrollbar { width: 4px; }
+.users-bar::-webkit-scrollbar-track { background: transparent; }
+.users-bar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ── АККАУНТ-ГРУППА (КАТЕГОРИИ ИЗ INDEX 5) ── */
+.account-group { 
+  border-bottom: 1px solid var(--border-lite); 
 }
 
-.account-card.active {
-  border-color: var(--accent-hi);
-  box-shadow: 0 0 0 1px var(--accent-hi), 0 4px 14px rgba(0,0,0,0.4);
-}
-
-.account-card.active .account-header {
-  background: var(--accent);
-}
-
-.account-card.active .account-header .account-name,
-.account-card.active .account-header .account-id {
-  color: #fff;
-}
-
-.account-header {
+.account-row {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
   cursor: pointer;
+  background: var(--panel);
   transition: background 0.15s;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  user-select: none;
 }
+.account-row:hover { background: rgba(255,255,255,0.05); }
+.account-row.open  { background: rgba(90,171,240,0.08); }
 
-.account-header:hover {
-  background: rgba(255,255,255,0.05);
+.account-row .acc-avatar {
+  width: 28px; height: 28px;
+  border-radius: 4px;
+  background: rgba(90,171,240,0.15);
+  color: var(--accent-hi);
+  font-family: 'Unbounded', sans-serif;
+  font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
 }
+.account-row .acc-body { flex: 1; min-width: 0; }
+.account-row .acc-name {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 10px; font-weight: 700;
+  color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.account-row .acc-sub {
+  font-size: 10px; color: var(--text-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.account-row .acc-toggle {
+  font-size: 10px; color: var(--text-dim);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.account-row.open .acc-toggle { transform: rotate(90deg); }
 
-.account-avatar {
-  width: 30px;
-  height: 30px;
+.account-users {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px 7px 7px 7px;
+  background: var(--panel-deep);
+}
+.account-users.open { display: flex; }
+
+/* Loading skeleton chips */
+.chip-skeleton {
+  width: 100%;
+  height: 38px;
   border-radius: 5px;
+  background: linear-gradient(90deg, var(--panel-deep) 25%, var(--border) 50%, var(--panel-deep) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  flex-shrink: 0;
+  margin: 5px 0;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── ЧИП ПОЛЬЗОВАТЕЛЯ ── */
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(90,171,240,0.04);
+  border: 2px solid var(--border-lite);
+  border-radius: 5px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s, box-shadow 0.15s;
+  flex-shrink: 0;
+  width: 100%;
+}
+.user-chip:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: #fff;
+  box-shadow: 0 0 0 1px #fff, 0 4px 14px rgba(0,0,0,0.4);
+  transform: translateX(2px);
+}
+.user-chip:hover .chip-name { color: #fff; }
+.user-chip:hover .avatar    { border-color: #fff; color: #fff; }
+.user-chip.active {
+  background: var(--accent);
+  border-color: var(--accent-hi);
+  box-shadow: 0 0 0 1px var(--accent-hi);
+}
+.user-chip.active .chip-name { color: #fff; font-weight: 700; }
+.user-chip.active .avatar    { background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.3); }
+
+.avatar {
+  width: 27px; height: 27px;
+  border-radius: 4px;
   background: rgba(90,171,240,0.12);
   color: var(--accent-hi);
   font-family: 'Unbounded', sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
   border: 1px solid var(--border);
   transition: border-color 0.15s, color 0.15s;
 }
-
-.account-card.active .account-avatar {
-  background: rgba(255,255,255,0.15);
-  color: #fff;
-  border-color: rgba(255,255,255,0.3);
-}
-
-.account-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.account-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.chip-body { flex: 1; min-width: 0; }
+.chip-name {
+  font-size: 12px; font-weight: 500;
+  color: #8ab4d8;
   transition: color 0.15s;
-}
-
-.account-id {
-  font-size: 10px;
-  color: var(--text-dim);
-  margin-top: 1px;
-  transition: color 0.15s;
-}
-
-.account-toggle {
-  font-size: 12px;
-  color: var(--text-soft);
-  transition: transform 0.2s;
-  flex-shrink: 0;
-}
-
-.account-card.expanded .account-toggle {
-  transform: rotate(180deg);
-}
-
-/* Список чатов внутри аккаунта */
-.chats-list {
-  display: none;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 6px 6px 6px;
-  background: var(--panel-deep);
-}
-
-.account-card.expanded .chats-list {
-  display: flex;
-}
-
-.chat-item {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
-  border: 1px solid transparent;
-}
-
-.chat-item:hover {
-  background: rgba(90,171,240,0.08);
-  border-color: var(--border-lite);
-}
-
-.chat-item.active {
-  background: rgba(90,171,240,0.15);
-  border-color: var(--accent-hi);
-}
-
-.chat-item.active .chat-name {
-  color: var(--accent-hi);
-  font-weight: 600;
-}
-
-.chat-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  background: rgba(90,171,240,0.1);
-  color: var(--accent-hi);
-  font-family: 'Unbounded', sans-serif;
-  font-size: 8px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border: 1px solid var(--border);
-}
-
-.chat-item.active .chat-avatar {
-  background: rgba(90,171,240,0.2);
-  border-color: var(--accent-hi);
-}
-
-.chat-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.chat-name {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-soft);
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: color 0.12s;
-}
-
-.chat-last-msg {
-  font-size: 10px;
-  color: var(--text-dim);
-  margin-top: 1px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-
-/* Skeleton loading */
-.account-skeleton {
-  height: 46px;
-  border-radius: 6px;
-  background: linear-gradient(90deg, var(--panel-deep) 25%, var(--border) 50%, var(--panel-deep) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
-  margin-bottom: 5px;
+.chip-sub {
+  font-size: 9px; color: var(--text-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;
 }
+.user-chip.active .chip-sub { color: rgba(255,255,255,0.5); }
 
 /* ── MESSAGES ZONE ── */
 .messages-zone {
@@ -376,6 +278,7 @@ body {
   gap: 10px;
   flex-shrink: 0;
   border-bottom: 2px solid var(--border);
+  height: 56px;
 }
 .messages-header .avatar-lg {
   width: 34px; height: 34px;
@@ -401,17 +304,7 @@ body {
   color: var(--text-soft);
   margin-top: 2px;
 }
-.messages-header .account-label {
-  font-size: 10px;
-  color: var(--text-dim);
-  background: var(--panel-deep);
-  padding: 2px 6px;
-  border-radius: 3px;
-  border: 1px solid var(--border);
-  white-space: nowrap;
-}
 
-/* Кнопка обновления */
 .refresh-btn {
   background: transparent;
   border: 1.5px solid var(--border);
@@ -440,7 +333,6 @@ body {
 .messages-list::-webkit-scrollbar-track { background: transparent; }
 .messages-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-/* ── СООБЩЕНИЕ ── */
 .msg {
   max-width: 78%;
   padding: 9px 13px;
@@ -464,7 +356,6 @@ body {
   color: #fff;
 }
 
-/* Строка под текстом: время + плашки статуса */
 .msg-meta {
   display: flex;
   align-items: center;
@@ -480,7 +371,6 @@ body {
 }
 .msg.outgoing .msg-time { color: rgba(255,255,255,0.6); }
 
-/* Плашки статуса */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -504,7 +394,6 @@ body {
   border: 1px solid rgba(255,92,106,0.3);
 }
 
-/* Удалённые сообщения — приглушённый вид */
 .msg.is-deleted {
   opacity: 0.52;
 }
@@ -513,7 +402,6 @@ body {
   text-decoration-color: var(--red);
 }
 
-/* Блок "Было" для отредактированных */
 .old-text-block {
   margin-top: 5px;
   padding: 5px 8px;
@@ -535,13 +423,11 @@ body {
   margin-bottom: 2px;
 }
 
-/* Иконка типа сообщения */
 .msg-type-icon {
   font-size: 11px;
   opacity: 0.65;
 }
 
-/* Подсветка поиска */
 .msg.highlighted {
   background: rgba(90,171,240,0.25) !important;
   border-color: var(--accent-hi) !important;
@@ -566,6 +452,10 @@ mark {
   padding: 11px 12px;
   flex-shrink: 0;
   border-bottom: 2px solid var(--border);
+  height: 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .search-header h3 {
   font-family: 'Unbounded', sans-serif;
@@ -573,7 +463,7 @@ mark {
   color: var(--text-soft);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  margin-bottom: 9px;
+  margin-bottom: 5px;
 }
 .search-input-wrap {
   display: flex;
@@ -584,7 +474,7 @@ mark {
   background: var(--panel-deep);
   border: 2px solid var(--border);
   border-radius: 5px;
-  padding: 7px 11px;
+  padding: 5px 9px;
   font-family: 'Onest', sans-serif;
   font-size: 12px;
   color: var(--text);
@@ -597,19 +487,15 @@ mark {
   background: var(--border);
   border: 2px solid var(--border);
   border-radius: 5px;
-  padding: 7px 11px;
+  padding: 5px 9px;
   color: var(--text-soft);
-  font-size: 13px;
+  font-size: 11px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 .search-input-wrap button:hover { background: var(--accent); color: #fff; border-color: var(--accent-hi); }
-.search-count {
-  font-size: 10px;
-  color: var(--accent-hi);
-  opacity: 0.8;
-  margin-top: 5px;
-}
+.search-count { font-size: 10px; color: var(--accent-hi); opacity: 0.8; margin-top: 2px; }
+
 .search-results {
   flex: 1;
   overflow-y: auto;
@@ -620,6 +506,16 @@ mark {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
+
+.search-section-label {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 8px; font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 6px 4px 2px;
+}
+
 .search-result-item {
   background: var(--panel);
   border: 2px solid var(--border-lite);
@@ -631,11 +527,7 @@ mark {
   color: var(--text);
   line-height: 1.5;
 }
-.search-result-item:hover {
-  border-color: var(--accent-hi);
-  background: var(--accent-glow);
-  transform: translateX(-2px);
-}
+.search-result-item:hover { border-color: var(--accent-hi); background: var(--accent-glow); transform: translateX(-2px); }
 .search-result-item .result-from {
   font-family: 'Unbounded', sans-serif;
   font-size: 8px; font-weight: 700;
@@ -645,11 +537,33 @@ mark {
   margin-bottom: 3px;
   opacity: 0.8;
 }
-.search-result-item .result-account {
-  font-size: 9px;
-  color: var(--text-dim);
-  margin-bottom: 2px;
+.search-result-item .result-account { font-size: 9px; color: var(--text-dim); margin-bottom: 2px; }
+
+/* Пользователь в глобальном поиске */
+.user-result-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 2px solid var(--border-lite);
+  border-radius: 5px;
+  padding: 7px 9px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.12s, background 0.15s;
 }
+.user-result-chip:hover { border-color: var(--accent-hi); background: var(--accent-glow); transform: translateX(-2px); }
+.user-result-chip .urc-avatar {
+  width: 26px; height: 26px; border-radius: 4px;
+  background: rgba(90,171,240,0.12); color: var(--accent-hi);
+  font-family: 'Unbounded', sans-serif; font-size: 8px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; border: 1px solid var(--border);
+}
+.user-result-chip .urc-body { flex: 1; min-width: 0; }
+.user-result-chip .urc-name { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-result-chip .urc-sub  { font-size: 10px; color: var(--text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-result-chip .urc-acct { font-size: 9px; color: var(--text-dim); margin-top: 1px; }
+
 .no-results {
   padding: 20px;
   text-align: center;
@@ -659,7 +573,6 @@ mark {
   font-weight: 600;
 }
 
-/* ── Ошибка/пустой стейт ── */
 .state-msg {
   display: flex;
   flex-direction: column;
@@ -677,104 +590,132 @@ mark {
 .state-msg .icon { font-size: 28px; opacity: 0.3; }
 
 /* ── Мобильная адаптация ── */
-@media (max-width: 900px) {
-  .shell {
-    grid-template-columns: 200px 1fr 220px;
-  }
-}
-
 @media (max-width: 768px) {
   .shell {
     grid-template-columns: 1fr;
-    grid-template-rows: 56px 1fr auto;
+    grid-template-rows: auto 1fr auto;
   }
   .accounts-zone {
-    position: fixed;
-    left: 0;
-    top: 56px;
-    bottom: 0;
-    width: 280px;
-    z-index: 200;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-  }
-  .accounts-zone.visible {
-    transform: translateX(0);
-  }
-  .messages-zone {
-    grid-column: 1 / 2;
-    grid-row: 2 / 3;
+    max-height: 25vh;
     border-right: none;
+    border-bottom: 2px solid var(--border);
   }
   .search-zone {
-    grid-column: 1 / 2;
-    grid-row: 3 / 4;
-    max-height: 200px;
+    max-height: 30vh;
     border-top: 2px solid var(--border);
   }
   .msg { max-width: 90%; }
 }
 
-@media (max-width: 480px) {
-  .shell {
-    grid-template-rows: 56px 1fr auto;
-  }
-  .accounts-zone {
-    width: 260px;
-  }
-  .search-zone {
-    max-height: 180px;
+/* ── TOGGLE BUTTON FOR ACCOUNTS PANEL ── */
+.panel-toggle {
+  position: absolute;
+  left: 240px;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  height: 48px;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 0 6px 6px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100;
+  transition: left 0.3s ease, background 0.15s, border-color 0.15s;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.3);
+}
+.panel-toggle:hover {
+  background: var(--accent);
+  border-color: var(--accent-hi);
+}
+.panel-toggle .arrow {
+  font-size: 10px;
+  color: var(--text-soft);
+  transition: transform 0.3s ease, color 0.15s;
+  user-select: none;
+}
+.panel-toggle:hover .arrow {
+  color: #fff;
+}
+
+/* Collapsed state */
+.shell.accounts-collapsed {
+  grid-template-columns: 0px 1fr 260px;
+}
+.shell.accounts-collapsed .accounts-zone {
+  opacity: 0;
+  pointer-events: none;
+}
+.shell.accounts-collapsed .panel-toggle {
+  left: 0px;
+  border-radius: 0 6px 6px 0;
+}
+.shell.accounts-collapsed .panel-toggle .arrow {
+  transform: rotate(180deg);
+}
+
+/* Transition for smooth collapse */
+.accounts-zone {
+  transition: opacity 0.25s ease;
+}
+.shell {
+  transition: grid-template-columns 0.3s ease;
+}
+
+/* Mobile: hide toggle */
+@media (max-width: 768px) {
+  .panel-toggle {
+    display: none;
   }
 }
+
 </style>
 </head>
 <body>
 
 <div class="shell">
-
-  <!-- ЛЕВАЯ ПАНЕЛЬ: АККАУНТЫ -->
-  <div class="accounts-zone" id="accountsZone">
+  <div class="accounts-zone">
     <div class="accounts-header">
-      <h3>👤 Аккаунты</h3>
-      <div class="accounts-search-wrap">
-        <input type="text" id="accountsSearchInput" placeholder="Поиск по имени/юзернейму..." oninput="filterAccounts()" />
-      </div>
+      <h3>👥 Аккаунты</h3>
+      <span class="count-badge" id="accountsCount">0</span>
     </div>
-    <div class="accounts-list" id="accountsList">
-      <!-- Skeleton loading -->
-      <div class="account-skeleton"></div>
-      <div class="account-skeleton"></div>
-      <div class="account-skeleton"></div>
-      <div class="account-skeleton"></div>
+    <div class="users-bar" id="usersBar">
+      <div class="chip-skeleton"></div>
+      <div class="chip-skeleton"></div>
+      <div class="chip-skeleton"></div>
+      <div class="chip-skeleton"></div>
     </div>
   </div>
+  <div class="panel-toggle" id="panelToggle" onclick="toggleAccountsPanel()" title="Скрыть/показать панель аккаунтов">
+    <span class="arrow" id="panelArrow">◀</span>
+  </div>
 
-  <!-- MESSAGES ZONE -->
   <div class="messages-zone" id="messagesZone">
-    <div class="no-user-placeholder" id="noChatPlaceholder">
+    <div class="no-user-placeholder" id="noUserPlaceholder">
       <div class="icon">💬</div>
-      <p>Выберите чат<br>в левой панели</p>
+      <p>Выберите пользователя<br>в левой панели</p>
     </div>
+
     <div id="chatArea">
-      <div class="messages-header" id="chatHeader">
+      <div class="messages-header">
         <div class="avatar-lg" id="headerAvatar"></div>
         <div class="user-info">
-          <div class="user-name"   id="headerName"></div>
+          <div class="user-name" id="headerName"></div>
           <div class="user-status" id="headerStatus"></div>
         </div>
-        <div class="account-label" id="headerAccountLabel"></div>
         <button class="refresh-btn" id="refreshBtn" title="Обновить" onclick="refreshMessages()">↻</button>
       </div>
       <div class="messages-list" id="messagesList"></div>
     </div>
   </div>
 
-  <!-- SEARCH ZONE -->
   <div class="search-zone">
     <div class="search-header">
-      <h3>🔍 Поиск по сообщениям</h3>
+      <h3>🔍 Поиск</h3>
       <div class="search-input-wrap">
-        <input type="text" id="searchInput" placeholder="Введите слово..." oninput="doSearch()" />
+        <input type="text" id="searchInput" placeholder="Сообщение, имя, @username…" oninput="doSearch()" />
         <button onclick="clearSearch()">✕</button>
       </div>
       <div class="search-count" id="searchCount"></div>
@@ -783,254 +724,193 @@ mark {
       <div class="no-results">Введите запрос для поиска</div>
     </div>
   </div>
-
 </div>
 
 <script>
-// ══════════════════════════════════════════════════════════════════════════════
-// TELEGRAM MINI APP INIT
-// ══════════════════════════════════════════════════════════════════════════════
 if (window.Telegram && window.Telegram.WebApp) {
   window.Telegram.WebApp.ready();
   window.Telegram.WebApp.expand();
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// КОНФИГУРАЦИЯ — замените на реальный адрес вашего сервера
-// ══════════════════════════════════════════════════════════════════════════════
-const API_BASE = 'https://burilowmisha2045-spec.github.io/Bot_Parser/';
+const API_BASE = 'https://aerov11.github.io/b9f2e4c8a17d4e3f89a2bc1d0e5f6a7b/';
+let accounts = []; // [ { id, name, initials, username?, open?, users:[] } ]
+let messages = {}; // { userId: [...] }
+let activeUser = null;
 
-// ══════════════════════════════════════════════════════════════════════════════
-// СОСТОЯНИЕ
-// ══════════════════════════════════════════════════════════════════════════════
-let accounts    = [];          // [{id, name, username, initials, raw}, ...]
-let chats       = {};          // { accountId: [{id, name, initials, raw, biz_id, last_msg}, ...] }
-let messages    = {};          // { chatId: [...] }
-let activeAccount = null;      // текущий объект аккаунта
-let activeChat  = null;        // текущий объект чата
-let accountsFilter = '';       // фильтр поиска по аккаунтам
-
-// ══════════════════════════════════════════════════════════════════════════════
-// API ФУНКЦИИ
-// ══════════════════════════════════════════════════════════════════════════════
-
-async function fetchAccounts() {
-  const resp = await fetch(`${API_BASE}/api/accounts`);
+// ══════════════════════════════════════
+// API ЗАПРОСЫ
+// ══════════════════════════════════════
+async function fetchUsers() {
+  const resp = await fetch(`${API_BASE}/api/users`);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   return resp.json();
 }
 
-async function fetchChats(accountId) {
-  const resp = await fetch(`${API_BASE}/api/chats/${encodeURIComponent(accountId)}`);
+async function fetchMessages(bizId, encoded) {
+  const resp = await fetch(`${API_BASE}/api/messages/${encodeURIComponent(bizId)}/${encoded}`);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   return resp.json();
 }
-
-async function fetchMessages(chatId, rawUserInfo) {
-  const encoded = encodeURIComponent(rawUserInfo);
-  const resp    = await fetch(`${API_BASE}/api/messages/${encodeURIComponent(chatId)}/${encoded}`);
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  return resp.json();
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// ИНИЦИАЛИЗАЦИЯ — загрузка пользователей
-// ══════════════════════════════════════════════════════════════════════════════
 
 async function init() {
   try {
-    accounts = await fetchAccounts();
-    buildAccountsList();
+    accounts = await fetchUsers();
+    
+    // По умолчанию раскрываем все аккаунты
+    accounts.forEach(acc => {
+      if (acc.open === undefined) acc.open = true;
+    });
+    
+    buildUsersBar();
   } catch (err) {
-    console.error('Ошибка загрузки аккаунтов:', err);
-    const list = document.getElementById('accountsList');
-    list.innerHTML = `<div class="state-msg"><div class="icon">⚠️</div>Не удалось загрузить аккаунты.<br>Проверьте API.</div>`;
+    console.error('Ошибка загрузки пользователей:', err);
+    const bar = document.getElementById('usersBar');
+    bar.innerHTML = `<div style="color:var(--red);font-size:11px;padding:14px;font-family:'Onest',sans-serif;">⚠️ Не удалось загрузить пользователей. Проверьте API.</div>`;
+    document.getElementById('accountsCount').textContent = '0';
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// ПОСТРОЕНИЕ ПАНЕЛИ ПОЛЬЗОВАТЕЛЕЙ
-// ══════════════════════════════════════════════════════════════════════════════
-
-function buildAccountsList() {
-  const list = document.getElementById('accountsList');
-  list.innerHTML = '';
-
+// ══════════════════════════════════════
+// ПОСТРОЕНИЕ ДРЕВА АККАУНТОВ И ПОЛЬЗОВАТЕЛЕЙ
+// ══════════════════════════════════════
+function buildUsersBar() {
+  const bar = document.getElementById('usersBar');
+  bar.innerHTML = '';
+  
+  document.getElementById('accountsCount').textContent = accounts.length;
+  
   if (!accounts.length) {
-    list.innerHTML = `<div class="state-msg"><div class="icon">📭</div>Нет аккаунтов</div>`;
+    bar.innerHTML = `<div class="no-results" style="padding:20px">Нет аккаунтов</div>`;
     return;
   }
 
-  // Фильтрация по имени/юзернейму
-  let filtered = accounts;
-  if (accountsFilter) {
-    const q = accountsFilter.toLowerCase();
-    filtered = accounts.filter(a => {
-      const nameMatch = (a.name || '').toLowerCase().includes(q);
-      const userMatch = (a.username || '').toLowerCase().includes(q);
-      return nameMatch || userMatch;
-    });
-  }
+  accounts.forEach(acc => {
+    const group = document.createElement('div');
+    group.className = 'account-group';
 
-  if (!filtered.length) {
-    list.innerHTML = `<div class="no-results">Ничего не найдено</div>`;
-    return;
-  }
-
-  filtered.forEach(acc => {
-    const card = document.createElement('div');
-    const isExpanded = activeAccount && activeAccount.id === acc.id;
-    card.className = 'account-card' + (isExpanded ? ' expanded active' : '');
-    card.dataset.id = acc.id;
-
-    const accChats = chats[acc.id] || [];
-    const hasChats = accChats.length > 0;
-
-    // Заголовок аккаунта
-    const header = document.createElement('div');
-    header.className = 'account-header';
-    header.innerHTML = `
-      <div class="account-avatar">${esc(acc.initials || '??')}</div>
-      <div class="account-info">
-        <div class="account-name">${esc(acc.name || 'Без имени')}</div>
-        <div class="account-id">@${esc(acc.username || acc.id.slice(-6))}</div>
+    // 1. Строка аккаунта (категории)
+    const row = document.createElement('div');
+    row.className = 'account-row' + (acc.open ? ' open' : '');
+    row.innerHTML = `
+      <div class="acc-avatar">${esc(acc.initials)}</div>
+      <div class="acc-body">
+        <div class="acc-name">${esc(acc.name)}</div>
+        ${acc.username ? `<div class="acc-sub">@${esc(acc.username)}</div>` : `<div class="acc-sub">${acc.users.length} чатов</div>`}
       </div>
-      <div class="account-toggle">${hasChats ? '▼' : ''}</div>
+      <span class="acc-toggle">›</span>
     `;
-    header.onclick = () => toggleAccount(acc);
-    card.appendChild(header);
+    row.onclick = () => {
+      acc.open = !acc.open;
+      buildUsersBar();
+    };
+    group.appendChild(row);
 
-    // Список чатов (если есть)
-    if (hasChats) {
-      const chatsContainer = document.createElement('div');
-      chatsContainer.className = 'chats-list';
+    // 2. Контейнер пользователей
+    const userList = document.createElement('div');
+    userList.className = 'account-users' + (acc.open ? ' open' : '');
 
-      accChats.forEach(chat => {
-        const chatEl = document.createElement('div');
-        const isActiveChat = activeChat && activeChat.id === chat.id;
-        chatEl.className = 'chat-item' + (isActiveChat ? ' active' : '');
-        chatEl.dataset.id = chat.id;
-
-        chatEl.innerHTML = `
-          <div class="chat-avatar">${esc(chat.initials || '??')}</div>
-          <div class="chat-info">
-            <div class="chat-name">${esc(chat.name || 'Без имени')}</div>
-            <div class="chat-last-msg">${esc(chat.last_msg || '')}</div>
-          </div>
-        `;
-        chatEl.onclick = (e) => {
-          e.stopPropagation();
-          selectChat(acc, chat);
-        };
-        chatsContainer.appendChild(chatEl);
+    if (acc.open) {
+      // Считаем дубликаты имён внутри текущего аккаунта
+      const nameCounts = {};
+      acc.users.forEach(u => {
+        nameCounts[u.name] = (nameCounts[u.name] || 0) + 1;
       });
 
-      card.appendChild(chatsContainer);
-    }
+      acc.users.forEach(u => {
+        const chip = document.createElement('div');
+        const isActive = activeUser && activeUser.id === u.id;
+        chip.className = 'user-chip' + (isActive ? ' active' : '');
+        chip.dataset.id = u.id;
 
-    list.appendChild(card);
+        const hasDupe = nameCounts[u.name] > 1;
+        const nameHtml = hasDupe 
+          ? `${esc(u.name)} <span style="opacity:0.5;font-size:10px">#${u.id.slice(-4)}</span>` 
+          : esc(u.name);
+
+        chip.innerHTML = `
+          <div class="avatar">${esc(u.initials)}</div>
+          <div class="chip-body">
+            <div class="chip-name">${nameHtml}</div>
+            ${u.username ? `<div class="chip-sub">@${esc(u.username)}</div>` : ''}
+          </div>
+        `;
+        
+        chip.onclick = () => selectUser(u);
+        userList.appendChild(chip);
+      });
+    }
+    
+    group.appendChild(userList);
+    bar.appendChild(group);
+  });
+
+  // Автоскролл к активному чипу чата
+  requestAnimationFrame(() => {
+    const active = bar.querySelector('.user-chip.active');
+    if (active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// ВЫБОР ПОЛЬЗОВАТЕЛЯ
-// ══════════════════════════════════════════════════════════════════════════════
-
-async function toggleAccount(account) {
-  const isSame = activeAccount && activeAccount.id === account.id;
-
-  if (isSame) {
-    // Свернуть текущий
-    activeAccount = null;
-    buildAccountsList();
-    return;
-  }
-
-  activeAccount = account;
-
-  // Загрузить чаты для этого аккаунта, если ещё не загружены
-  if (!chats[account.id]) {
-    try {
-      const chatList = await fetchChats(account.id);
-      chats[account.id] = chatList;
-    } catch (err) {
-      console.error('Ошибка загрузки чатов:', err);
-      chats[account.id] = [];
-    }
-  }
-
-  buildAccountsList();
-}
-
-async function selectChat(account, chat) {
-  activeChat = chat;
-  activeAccount = account;
-  buildAccountsList(); // обновить выделение
-
-  // На мобильных закрыть панель
-  if (window.innerWidth <= 768) {
-    document.getElementById('accountsZone').classList.remove('visible');
-  }
-
-  document.getElementById('noChatPlaceholder').style.display = 'none';
+async function selectUser(user) {
+  activeUser = user;
+  buildUsersBar();
+  
+  document.getElementById('noUserPlaceholder').style.display = 'none';
   const chatArea = document.getElementById('chatArea');
   chatArea.classList.add('visible');
-
-  document.getElementById('headerAvatar').textContent = chat.initials || '??';
-  document.getElementById('headerName').textContent   = chat.name || 'Без имени';
+  
+  document.getElementById('headerAvatar').textContent = user.initials;
+  document.getElementById('headerName').textContent = user.name;
   document.getElementById('headerStatus').textContent = 'загрузка…';
-  document.getElementById('messagesList').innerHTML   = loadingState();
-
+  document.getElementById('messagesList').innerHTML = loadingState();
+  
   clearSearch();
-  await loadMessages(chat);
+  await loadMessages(user);
 }
 
-async function loadMessages(chat) {
+async function loadMessages(user) {
   try {
-    const btn  = document.getElementById('refreshBtn');
+    const btn = document.getElementById('refreshBtn');
     btn.classList.add('spinning');
-
-    const msgs  = await fetchMessages(chat.id, chat.raw);
-    messages[chat.id] = msgs;
-
-    const count = msgs.length;
-    const last  = msgs.length ? msgs[msgs.length - 1] : null;
-    document.getElementById('headerStatus').textContent = last
-      ? `последнее: ${formatTs(last.ts)}`
-      : `${count} сообщений`;
-
-    renderMessages();
-    btn.classList.remove('spinning');
+    
+    const msgs = await fetchMessages(user.biz_id, user.raw);
+    messages[user.id] = msgs;
+    
+    if (activeUser && activeUser.id === user.id) {
+      renderMessages(msgs);
+      document.getElementById('headerStatus').textContent = `всего ${msgs.length}`;
+    }
   } catch (err) {
-    console.error('Ошибка загрузки сообщений:', err);
-    document.getElementById('headerStatus').textContent = 'ошибка загрузки';
-    document.getElementById('messagesList').innerHTML = errorState('Не удалось загрузить сообщения');
+    console.error(err);
+    if (activeUser && activeUser.id === user.id) {
+      document.getElementById('messagesList').innerHTML = `<div class="state-msg"><div class="icon">⚠️</div>Ошибка загрузки истории</div>`;
+      document.getElementById('headerStatus').textContent = 'ошибка';
+    }
+  } finally {
     document.getElementById('refreshBtn').classList.remove('spinning');
   }
 }
 
-async function refreshMessages() {
-  if (!activeChat) return;
-  await loadMessages(activeChat);
+function refreshMessages() {
+  if (activeUser) loadMessages(activeUser);
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// РЕНДЕР СООБЩЕНИЙ
-// ══════════════════════════════════════════════════════════════════════════════
+function loadingState() {
+  return `
+    <div class="state-msg">
+      <div class="icon" style="animation: spin 1s linear infinite">🔄</div>
+      Загрузка диалога…
+    </div>
+  `;
+}
 
-/**
- * Каждое сообщение из API:
- *   { m_id, text, old_text, m_type, file_path, status, is_edited, is_deleted, ts }
- *
- * Визуальная логика:
- *  - is_deleted → плашка [Удалено], зачёркнутый + полупрозрачный текст
- *  - is_edited  → плашка [Отредактировано] + блок «Было: ...» со старым текстом
- *  - Входящее/исходящее: все записи из БД считаются входящими от клиента
- */
-function renderMessages(highlight = null) {
-  if (!activeChat) return;
+// ══════════════════════════════════════
+// ОТРИСОВКА СООБЩЕНИЙ ЧАТА
+// ══════════════════════════════════════
+function renderMessages(msgs = null, highlight = '') {
   const list = document.getElementById('messagesList');
-  const msgs = messages[activeChat.id] || [];
+  if (!msgs && activeUser) msgs = messages[activeUser.id] || [];
+  if (!msgs) return;
 
   if (!msgs.length) {
     list.innerHTML = `<div class="state-msg"><div class="icon">📭</div>Нет сообщений</div>`;
@@ -1038,26 +918,21 @@ function renderMessages(highlight = null) {
   }
 
   list.innerHTML = '';
-
   msgs.forEach((msg, idx) => {
     const div = document.createElement('div');
-    div.className = 'msg incoming' +
-      (msg.is_deleted ? ' is-deleted' : '') +
-      (highlight && msg.text.toLowerCase().includes(highlight.toLowerCase()) ? ' highlighted' : '');
+    const isMatched = highlight && (msg.text || '').toLowerCase().includes(highlight.toLowerCase());
+    div.className = 'msg incoming' + (msg.is_deleted ? ' is-deleted' : '') + (isMatched ? ' highlighted' : '');
     div.dataset.idx = idx;
 
-    // Тип-иконка
     const typeIcons = { text: '', photo: '🖼 ', voice: '🎙 ', video: '🎥 ', document: '📄 ' };
-    const typeIcon  = typeIcons[msg.m_type] || '📎 ';
-
-    // Текст с подсветкой поиска
+    const typeIcon = typeIcons[msg.m_type] || '📎 ';
     let displayText = esc(msg.text || (msg.is_deleted ? '[текст удалён]' : '—'));
+
     if (highlight) {
       const rx = new RegExp(`(${escRx(highlight)})`, 'gi');
       displayText = displayText.replace(rx, '<mark>$1</mark>');
     }
 
-    // Плашки статуса
     let badges = '';
     if (msg.is_deleted) {
       badges += `<span class="badge badge-deleted">🗑 Удалено</span>`;
@@ -1066,7 +941,6 @@ function renderMessages(highlight = null) {
       badges += `<span class="badge badge-edited">✏️ Отредактировано</span>`;
     }
 
-    // Блок «Было» (только для отредактированных, не удалённых)
     let oldTextBlock = '';
     if (msg.is_edited && !msg.is_deleted && msg.old_text) {
       let oldDisplay = esc(msg.old_text);
@@ -1088,128 +962,151 @@ function renderMessages(highlight = null) {
         ${badges}
         <span class="msg-time">${formatTs(msg.ts)}</span>
       </div>`;
-
     list.appendChild(div);
   });
 
   list.scrollTop = list.scrollHeight;
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// ПОИСК
-// ══════════════════════════════════════════════════════════════════════════════
-
+// ══════════════════════════════════════
+// ГЛОБАЛЬНЫЙ ПОИСК ПО СООБЩЕНИЯМ И ЮЗЕРАМ
+// ══════════════════════════════════════
 function doSearch() {
-  const query      = document.getElementById('searchInput').value.trim();
-  const resultsEl  = document.getElementById('searchResults');
-  const countEl    = document.getElementById('searchCount');
+  const query = document.getElementById('searchInput').value.trim();
+  const resultsEl = document.getElementById('searchResults');
+  const countEl = document.getElementById('searchCount');
 
   if (!query) {
     resultsEl.innerHTML = '<div class="no-results">Введите запрос для поиска</div>';
     countEl.textContent = '';
-    if (activeChat) renderMessages();
+    if (activeUser) renderMessages();
     return;
   }
 
-  if (activeChat) renderMessages(query);
-
-  // Ищем по всем загруженным сообщениям
-  const found = [];
-  Object.keys(messages).forEach(chatId => {
-    const chat = findChatById(chatId);
-    if (!chat) return;
-    const account = findAccountByChatId(chatId);
-    if (!account) return;
-
-    messages[chatId].forEach((msg, idx) => {
-      const haystack = ((msg.text || '') + ' ' + (msg.old_text || '')).toLowerCase();
-      if (haystack.includes(query.toLowerCase())) {
-        found.push({ account, chat, msg, idx });
+  const q = query.toLowerCase();
+  
+  // 1. Ищем пользователей по всем аккаунтам
+  const userMatches = [];
+  accounts.forEach(acc => {
+    acc.users.forEach(u => {
+      const uName = (u.name || '').toLowerCase();
+      const uUser = (u.username || '').toLowerCase();
+      if (uName.includes(q) || uUser.includes(q) || ('@' + uUser).includes(q)) {
+        userMatches.push({ user: u, acc: acc });
       }
     });
   });
 
-  countEl.textContent = found.length ? `Найдено: ${found.length}` : '';
+  // 2. Ищем сообщения в загруженной кеш-истории
+  const msgMatches = [];
+  Object.keys(messages).forEach(userId => {
+    const userObj = findUserGlobal(userId);
+    if (!userObj) return;
+    messages[userId].forEach((msg, idx) => {
+      if ((msg.text || '').toLowerCase().includes(q)) {
+        msgMatches.push({ msg, userId, idx, user: userObj });
+      }
+    });
+  });
 
-  if (!found.length) {
+  resultsEl.innerHTML = '';
+  const total = userMatches.length + msgMatches.length;
+  countEl.textContent = `Найдено результатов: ${total}`;
+
+  if (total === 0) {
     resultsEl.innerHTML = '<div class="no-results">Ничего не найдено</div>';
     return;
   }
 
-  resultsEl.innerHTML = '';
-  found.forEach(item => {
-    const div   = document.createElement('div');
-    div.className = 'search-result-item';
-    const rx      = new RegExp(`(${escRx(query)})`, 'gi');
-    const hiText  = esc(item.msg.text || '').replace(rx, '<mark>$1</mark>');
+  // Отрендерить найденных юзеров
+  if (userMatches.length) {
+    const label = document.createElement('div');
+    label.className = 'search-section-label';
+    label.textContent = 'Пользователи';
+    resultsEl.appendChild(label);
 
-    div.innerHTML = `
-      <div class="result-from">${esc(item.chat.name || 'Без имени')} · ${formatTs(item.msg.ts)}</div>
-      <div class="result-account">@${esc(item.account.username || item.account.name || 'аккаунт')}</div>
-      ${hiText}
-    `;
-    div.onclick = async () => {
-      if (!activeAccount || activeAccount.id !== item.account.id) {
-        activeAccount = item.account;
-        if (!chats[item.account.id]) {
-          try {
-            chats[item.account.id] = await fetchChats(item.account.id);
-          } catch (e) {
-            chats[item.account.id] = [];
-          }
+    userMatches.forEach(item => {
+      const u = item.user;
+      const rx = new RegExp(`(${escRx(q.replace(/^@/, ''))})`, 'gi');
+      const hiName = esc(u.name || '').replace(rx, '<mark>$1</mark>');
+      const hiUser = u.username ? esc('@' + u.username).replace(rx, '<mark>$1</mark>') : '';
+      const acctLine = `<div class="urc-acct">📱 ${esc(item.acc.name)}</div>`;
+
+      const chip = document.createElement('div');
+      chip.className = 'user-result-chip';
+      chip.innerHTML = `
+        <div class="urc-avatar">${esc(u.initials)}</div>
+        <div class="urc-body">
+          <div class="urc-name">${hiName}</div>
+          ${hiUser ? `<div class="urc-sub">${hiUser}</div>` : ''}
+          ${acctLine}
+        </div>
+      `;
+      chip.onclick = async () => {
+        if (!item.acc.open) {
+          item.acc.open = true;
+          buildUsersBar();
         }
-      }
-      if (!activeChat || activeChat.id !== item.chat.id) {
-        await selectChat(item.account, item.chat);
-      }
-      setTimeout(() => {
-        renderMessages(query);
-        const el = document.querySelectorAll('.msg')[item.idx];
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 80);
-    };
-    resultsEl.appendChild(div);
-  });
+        await selectUser(u);
+      };
+      resultsEl.appendChild(chip);
+    });
+  }
+
+  // Отрендерить найденные сообщения
+  if (msgMatches.length) {
+    const label = document.createElement('div');
+    label.className = 'search-section-label';
+    label.textContent = 'Сообщения';
+    resultsEl.appendChild(label);
+
+    msgMatches.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'search-result-item';
+
+      let textSnippet = esc(item.msg.text || '');
+      const rx = new RegExp(`(${escRx(q)})`, 'gi');
+      textSnippet = textSnippet.replace(rx, '<mark>$1</mark>');
+
+      div.innerHTML = `
+        <div class="result-from">👤 ${esc(item.user.name)}</div>
+        <div style="opacity:0.85">${textSnippet}</div>
+        <div class="msg-time" style="margin-top:4px">${formatTs(item.msg.ts)}</div>
+      `;
+
+      div.onclick = async () => {
+        if (activeUser?.id !== item.userId) {
+          await selectUser(item.user);
+        }
+        renderMessages(messages[item.userId], query);
+        setTimeout(() => {
+          const target = document.querySelector(`.msg[data-idx="${item.idx}"]`);
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 80);
+      };
+      resultsEl.appendChild(div);
+    });
+  }
+}
+
+function findUserGlobal(id) {
+  for (const acc of accounts) {
+    const found = acc.users.find(u => String(u.id) === String(id));
+    if (found) return found;
+  }
+  return null;
 }
 
 function clearSearch() {
-  document.getElementById('searchInput').value   = '';
+  document.getElementById('searchInput').value = '';
   document.getElementById('searchResults').innerHTML = '<div class="no-results">Введите запрос для поиска</div>';
   document.getElementById('searchCount').textContent = '';
   if (activeUser) renderMessages();
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════
 // УТИЛИТЫ
-// ══════════════════════════════════════════════════════════════════════════════
-
-function findChatById(chatId) {
-  for (const accId of Object.keys(chats)) {
-    const chat = chats[accId].find(c => c.id === chatId);
-    if (chat) return chat;
-  }
-  return null;
-}
-
-function findAccountByChatId(chatId) {
-  for (const accId of Object.keys(chats)) {
-    const chat = chats[accId].find(c => c.id === chatId);
-    if (chat) return accounts.find(a => a.id === accId);
-  }
-  return null;
-}
-
-function filterAccounts() {
-  accountsFilter = document.getElementById('accountsSearchInput').value.trim();
-  buildAccountsList();
-}
-
-function clearAccountsSearch() {
-  document.getElementById('accountsSearchInput').value = '';
-  accountsFilter = '';
-  buildAccountsList();
-}
-
+// ══════════════════════════════════════
 function esc(s) {
   if (!s) return '';
   return String(s)
@@ -1218,14 +1115,11 @@ function esc(s) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
+
 function escRx(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/**
- * Форматируем ISO-строку из БД в читаемый вид.
- * Если строка пустая — возвращаем пустую строку.
- */
 function formatTs(ts) {
   if (!ts) return '';
   try {
@@ -1238,27 +1132,31 @@ function formatTs(ts) {
     }
     return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
       + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return ts;
+  } catch (e) { return ts; }
+}
+
+// Запуск приложения
+init();
+
+// ══════════════════════════════════════
+// TOGGLE ACCOUNTS PANEL
+// ══════════════════════════════════════
+let accountsPanelOpen = true;
+
+function toggleAccountsPanel() {
+  const shell = document.querySelector('.shell');
+  const arrow = document.getElementById('panelArrow');
+  accountsPanelOpen = !accountsPanelOpen;
+
+  if (accountsPanelOpen) {
+    shell.classList.remove('accounts-collapsed');
+    arrow.textContent = '◀';
+  } else {
+    shell.classList.add('accounts-collapsed');
+    arrow.textContent = '▶';
   }
 }
 
-function loadingState() {
-  return `
-    <div class="state-msg">
-      <div class="icon" style="animation:spin 0.8s linear infinite;display:inline-block">⟳</div>
-      Загрузка…
-    </div>`;
-}
-
-function errorState(msg) {
-  return `<div class="state-msg"><div class="icon">⚠️</div>${esc(msg)}</div>`;
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// СТАРТ
-// ══════════════════════════════════════════════════════════════════════════════
-init();
 </script>
 </body>
 </html>
