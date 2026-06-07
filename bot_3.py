@@ -21,15 +21,15 @@ from aiogram.types import (
     BusinessMessagesDeleted,
     Message,
 )
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 # ─── Конфигурация ─────────────────────────────────────────────────────────────
 
-BIZ_TOKEN = os.getenv("BIZ_TOKEN")
-LOG_TOKEN  = os.getenv("LOG_TOKEN")
-MY_ID      = int(os.getenv("ADMIN_ID", "0"))
+BIZ_TOKEN = "8709635645:AAHV4GqkGO8sD5OWdcfXebM9c5aqGwRCqaw"
+LOG_TOKEN  = "8443752656:AAEKeDM61WDxW0EJTVEstP4r6ZP23AK6AQc"
+MY_ID      = 7557612980
 
 if not BIZ_TOKEN or not LOG_TOKEN or not MY_ID:
     raise RuntimeError(
@@ -56,6 +56,7 @@ log = logging.getLogger("biz_monitor")
 def init_db() -> None:
     """
     Создаём таблицу msgs с расширенной схемой:
+      - rowid      : автоинкремент SQLite — используется как cursor для инкрементальных обновлений
       - status     : 'normal' | 'edited' | 'deleted'
       - old_text   : текст до последнего редактирования (история)
       - is_edited  : флаг редактирования (0/1)
@@ -67,6 +68,7 @@ def init_db() -> None:
     con = sqlite3.connect(DB_PATH)
     con.execute("""
         CREATE TABLE IF NOT EXISTS msgs (
+            rowid      INTEGER PRIMARY KEY AUTOINCREMENT,
             m_id       INTEGER,
             biz_id     TEXT,
             user_info  TEXT,
@@ -78,7 +80,7 @@ def init_db() -> None:
             is_edited  INTEGER DEFAULT 0,
             is_deleted INTEGER DEFAULT 0,
             ts         TEXT    DEFAULT '',
-            PRIMARY KEY (m_id, biz_id)
+            UNIQUE(m_id, biz_id)
         )
     """)
     # Миграция: добавляем колонки, если таблица уже существовала в старом формате
@@ -122,140 +124,188 @@ def db_save(
     is_edited: int = 0,
     is_deleted: int = 0,
 ) -> None:
-    con = sqlite3.connect(DB_PATH)
-    con.execute(
-        """
-        INSERT INTO msgs
+    try:
+        con = sqlite3.connect(DB_PATH)
+        con.execute(
+            """
+            INSERT INTO msgs
+                (m_id, biz_id, user_info, text, old_text, file_path, m_type,
+                 status, is_edited, is_deleted, ts)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(m_id, biz_id) DO UPDATE SET
+                user_info  = excluded.user_info,
+                text       = excluded.text,
+                old_text   = excluded.old_text,
+                file_path  = excluded.file_path,
+                m_type     = excluded.m_type,
+                status     = excluded.status,
+                is_edited  = excluded.is_edited,
+                is_deleted = excluded.is_deleted,
+                ts         = excluded.ts
+            """,
             (m_id, biz_id, user_info, text, old_text, file_path, m_type,
-             status, is_edited, is_deleted, ts)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?)
-        ON CONFLICT(m_id, biz_id) DO UPDATE SET
-            user_info  = excluded.user_info,
-            text       = excluded.text,
-            old_text   = excluded.old_text,
-            file_path  = excluded.file_path,
-            m_type     = excluded.m_type,
-            status     = excluded.status,
-            is_edited  = excluded.is_edited,
-            is_deleted = excluded.is_deleted,
-            ts         = excluded.ts
-        """,
-        (m_id, biz_id, user_info, text, old_text, file_path, m_type,
-         status, is_edited, is_deleted, _now_iso()),
-    )
-    con.commit()
-    con.close()
+             status, is_edited, is_deleted, _now_iso()),
+        )
+        con.commit()
+        con.close()
+        log.debug("db_save: m_id=%s biz_id=%s status=%s", m_id, biz_id, status)
+    except sqlite3.Error as e:
+        log.error("db_save ОШИБКА: m_id=%s biz_id=%s — %s", m_id, biz_id, e)
+        raise
 
 
 def db_get(m_id: int, biz_id: str) -> dict | None:
-    con = sqlite3.connect(DB_PATH)
-    row = con.execute(
-        """
-        SELECT m_id, biz_id, user_info, text, old_text,
-               file_path, m_type, status, is_edited, is_deleted, ts
-        FROM msgs WHERE m_id=? AND biz_id=?
-        """,
-        (m_id, biz_id),
-    ).fetchone()
-    con.close()
-    if row:
-        return dict(zip(
-            ["m_id", "biz_id", "user_info", "text", "old_text",
-             "file_path", "m_type", "status", "is_edited", "is_deleted", "ts"],
-            row,
-        ))
-    return None
+    try:
+        con = sqlite3.connect(DB_PATH)
+        row = con.execute(
+            """
+            SELECT rowid, m_id, biz_id, user_info, text, old_text,
+                   file_path, m_type, status, is_edited, is_deleted, ts
+            FROM msgs WHERE m_id=? AND biz_id=?
+            """,
+            (m_id, biz_id),
+        ).fetchone()
+        con.close()
+        if row:
+            return dict(zip(
+                ["rowid", "m_id", "biz_id", "user_info", "text", "old_text",
+                 "file_path", "m_type", "status", "is_edited", "is_deleted", "ts"],
+                row,
+            ))
+        return None
+    except sqlite3.Error as e:
+        log.error("db_get ОШИБКА: m_id=%s biz_id=%s — %s", m_id, biz_id, e)
+        return None
 
 
 def db_mark_deleted(m_id: int, biz_id: str) -> None:
-    con = sqlite3.connect(DB_PATH)
-    con.execute(
-        """
-        UPDATE msgs
-        SET status='deleted', is_deleted=1, ts=?
-        WHERE m_id=? AND biz_id=?
-        """,
-        (_now_iso(), m_id, biz_id),
-    )
-    con.commit()
-    con.close()
+    try:
+        con = sqlite3.connect(DB_PATH)
+        con.execute(
+            """
+            UPDATE msgs
+            SET status='deleted', is_deleted=1, ts=?
+            WHERE m_id=? AND biz_id=?
+            """,
+            (_now_iso(), m_id, biz_id),
+        )
+        con.commit()
+        con.close()
+        log.info("db_mark_deleted: m_id=%s biz_id=%s", m_id, biz_id)
+    except sqlite3.Error as e:
+        log.error("db_mark_deleted ОШИБКА: m_id=%s biz_id=%s — %s", m_id, biz_id, e)
+        raise
 
 
 def db_mark_edited(m_id: int, biz_id: str, new_text: str, old_text: str) -> None:
-    con = sqlite3.connect(DB_PATH)
-    con.execute(
-        """
-        UPDATE msgs
-        SET status='edited', is_edited=1, text=?, old_text=?, ts=?
-        WHERE m_id=? AND biz_id=?
-        """,
-        (new_text, old_text, _now_iso(), m_id, biz_id),
-    )
-    con.commit()
-    con.close()
+    try:
+        con = sqlite3.connect(DB_PATH)
+        con.execute(
+            """
+            UPDATE msgs
+            SET status='edited', is_edited=1, text=?, old_text=?, ts=?
+            WHERE m_id=? AND biz_id=?
+            """,
+            (new_text, old_text, _now_iso(), m_id, biz_id),
+        )
+        con.commit()
+        con.close()
+        log.info("db_mark_edited: m_id=%s biz_id=%s", m_id, biz_id)
+    except sqlite3.Error as e:
+        log.error("db_mark_edited ОШИБКА: m_id=%s biz_id=%s — %s", m_id, biz_id, e)
+        raise
 
 
 # ─── API helpers для FastAPI ───────────────────────────────────────────────────
 
 def db_get_users() -> list[dict]:
     """
-    Возвращает уникальных пользователей из БД.
-    Парсим user_info вида 'Имя (@username) (в чате: Чат)'.
+    Возвращает уникальных пользователей, сгруппированных по biz_id (аккаунту).
+    Структура ответа:
+    [
+      {
+        "id": "<biz_id>",
+        "name": "<biz_id или имя аккаунта>",
+        "initials": "XX",
+        "users": [
+          { "id": "<biz_id>::<user_info>", "biz_id": "...", "name": "...",
+            "initials": "XX", "raw": "<user_info_raw>", "last_ts": "..." }
+        ]
+      }, ...
+    ]
     """
-    con = sqlite3.connect(DB_PATH)
-    rows = con.execute(
-        "SELECT DISTINCT biz_id, user_info FROM msgs ORDER BY rowid DESC"
-    ).fetchall()
-    con.close()
+    try:
+        con = sqlite3.connect(DB_PATH)
+        rows = con.execute(
+            """
+            SELECT biz_id, user_info, MAX(ts) as last_ts
+            FROM msgs
+            GROUP BY biz_id, user_info
+            ORDER BY last_ts DESC
+            """
+        ).fetchall()
+        con.close()
+    except sqlite3.Error as e:
+        log.error("db_get_users ОШИБКА: %s", e)
+        return []
 
-    seen_keys: set[str] = set()
-    result: list[dict] = []
-
-    for biz_id, user_info in rows:
-        key = f"{biz_id}::{user_info}"
-        if key in seen_keys:
-            continue
-        seen_keys.add(key)
-
-        # Вычленяем чистое имя (без "(в чате: ...)")
+    # Группируем по biz_id
+    accounts: dict[str, dict] = {}
+    for biz_id, user_info, last_ts in rows:
         clean = user_info.split(" (в чате:")[0].strip()
-
-        # Формируем инициалы
         parts = clean.replace("(@", "").replace(")", "").split()
-        initials = "".join(p[0].upper() for p in parts[:2] if p and p[0].isalpha()) or "??"
+        initials = "".join(
+            p[0].upper() for p in parts[:2] if p and p[0].isalpha()
+        ) or "??"
 
-        result.append({
-            "id":       key,          # составной ключ для фронта
+        user_entry = {
+            "id":       f"{biz_id}::{user_info}",
             "biz_id":   biz_id,
             "name":     clean,
             "initials": initials,
             "raw":      user_info,
-        })
+            "last_ts":  last_ts or "",
+        }
 
-    return result
+        if biz_id not in accounts:
+            acc_initials = biz_id[:2].upper() if biz_id else "??"
+            accounts[biz_id] = {
+                "id":       biz_id,
+                "name":     f"Аккаунт {biz_id[:8]}",
+                "initials": acc_initials,
+                "users":    [],
+            }
+        accounts[biz_id]["users"].append(user_entry)
+
+    return list(accounts.values())
 
 
 def db_get_messages(biz_id: str, user_info_raw: str) -> list[dict]:
     """
     Возвращает все сообщения конкретного пользователя (biz_id + user_info).
     """
-    con = sqlite3.connect(DB_PATH)
-    rows = con.execute(
-        """
-        SELECT m_id, text, old_text, m_type, file_path,
-               status, is_edited, is_deleted, ts
-        FROM msgs
-        WHERE biz_id=? AND user_info=?
-        ORDER BY m_id ASC
-        """,
-        (biz_id, user_info_raw),
-    ).fetchall()
-    con.close()
+    try:
+        con = sqlite3.connect(DB_PATH)
+        rows = con.execute(
+            """
+            SELECT rowid, m_id, text, old_text, m_type, file_path,
+                   status, is_edited, is_deleted, ts
+            FROM msgs
+            WHERE biz_id=? AND user_info=?
+            ORDER BY m_id ASC
+            """,
+            (biz_id, user_info_raw),
+        ).fetchall()
+        con.close()
+    except sqlite3.Error as e:
+        log.error("db_get_messages ОШИБКА: biz_id=%s — %s", biz_id, e)
+        return []
 
     result = []
     for row in rows:
-        m_id, text, old_text, m_type, file_path, status, is_edited, is_deleted, ts = row
+        rowid, m_id, text, old_text, m_type, file_path, status, is_edited, is_deleted, ts = row
         result.append({
+            "rowid":      rowid,
             "m_id":       m_id,
             "text":       text or "",
             "old_text":   old_text or "",
@@ -267,6 +317,69 @@ def db_get_messages(biz_id: str, user_info_raw: str) -> list[dict]:
             "ts":         ts or "",
         })
     return result
+
+
+def db_get_updates(since_rowid: int) -> dict:
+    """
+    Инкрементальные обновления: возвращает все записи с rowid > since_rowid.
+    Используется фронтом для polling-обновления без полной перезагрузки.
+    Ответ: { "messages": [...], "max_rowid": N, "users_changed": bool }
+    """
+    try:
+        con = sqlite3.connect(DB_PATH)
+        rows = con.execute(
+            """
+            SELECT rowid, m_id, biz_id, user_info, text, old_text, m_type,
+                   file_path, status, is_edited, is_deleted, ts
+            FROM msgs
+            WHERE rowid > ?
+            ORDER BY rowid ASC
+            LIMIT 200
+            """,
+            (since_rowid,),
+        ).fetchall()
+        max_rowid_row = con.execute("SELECT MAX(rowid) FROM msgs").fetchone()
+        con.close()
+    except sqlite3.Error as e:
+        log.error("db_get_updates ОШИБКА: since_rowid=%s — %s", since_rowid, e)
+        return {"messages": [], "max_rowid": since_rowid, "users_changed": False}
+
+    max_rowid = max_rowid_row[0] or 0
+    messages = []
+    new_users = set()
+
+    for row in rows:
+        rowid, m_id, biz_id, user_info, text, old_text, m_type, file_path, status, is_edited, is_deleted, ts = row
+        messages.append({
+            "rowid":      rowid,
+            "m_id":       m_id,
+            "biz_id":     biz_id,
+            "user_info":  user_info,
+            "text":       text or "",
+            "old_text":   old_text or "",
+            "m_type":     m_type,
+            "file_path":  file_path or "",
+            "status":     status or "normal",
+            "is_edited":  bool(is_edited),
+            "is_deleted": bool(is_deleted),
+            "ts":         ts or "",
+        })
+        new_users.add(f"{biz_id}::{user_info}")
+
+    # users_changed = True если появились новые пользователи в апдейтах
+    users_changed = len(new_users) > 0 and since_rowid == 0 or bool(
+        new_users and rows
+    )
+
+    log.debug(
+        "db_get_updates: since_rowid=%s, found=%s, max_rowid=%s",
+        since_rowid, len(messages), max_rowid
+    )
+    return {
+        "messages":     messages,
+        "max_rowid":    max_rowid,
+        "users_changed": users_changed,
+    }
 
 
 # ─── Вспомогательные функции бота ─────────────────────────────────────────────
@@ -291,8 +404,13 @@ def _ext_from_mime(mime: str | None, default: str = "bin") -> str:
 
 
 async def _download_file(bot: Bot, file_id: str, dest: Path) -> None:
-    tg_file = await bot.get_file(file_id)
-    await bot.download_file(tg_file.file_path, destination=str(dest))
+    try:
+        tg_file = await bot.get_file(file_id)
+        await bot.download_file(tg_file.file_path, destination=str(dest))
+        log.info("Файл скачан: %s", dest)
+    except Exception as e:
+        log.error("_download_file ОШИБКА: file_id=%s dest=%s — %s", file_id, dest, e)
+        raise
 
 
 async def _detect_and_download(msg: Message, biz_bot: Bot) -> tuple[str, str | None]:
@@ -323,7 +441,8 @@ async def _detect_and_download(msg: Message, biz_bot: Bot) -> tuple[str, str | N
             await _download_file(biz_bot, doc.file_id, dest)
             m_type, file_path = "document", str(dest)
     except Exception as e:
-        log.warning("Ошибка при скачивании медиа: %s", e)
+        log.warning("_detect_and_download: не удалось скачать медиа для msg_id=%s — %s",
+                    msg.message_id, e)
     return m_type, file_path
 
 
@@ -331,8 +450,11 @@ async def _read_file(path: str) -> bytes | None:
     try:
         async with aiofiles.open(path, "rb") as f:
             return await f.read()
+    except FileNotFoundError:
+        log.warning("_read_file: файл не найден %s", path)
+        return None
     except Exception as e:
-        log.warning("Не удалось прочитать файл %s: %s", path, e)
+        log.error("_read_file ОШИБКА: %s — %s", path, e)
         return None
 
 
@@ -341,24 +463,29 @@ async def _send_media_to_admin(
 ) -> None:
     data = await _read_file(file_path)
     if not data:
+        log.warning("_send_media_to_admin: нет данных для %s", file_path)
         return
     fname = Path(file_path).name
     buf   = BufferedInputFile(data, filename=fname)
-    if m_type == "photo":
-        await log_bot.send_photo(MY_ID, buf, caption=caption, parse_mode=ParseMode.HTML)
-    elif m_type == "voice":
-        await log_bot.send_voice(MY_ID, buf, caption=caption, parse_mode=ParseMode.HTML)
-    elif m_type == "video":
-        await log_bot.send_video(MY_ID, buf, caption=caption, parse_mode=ParseMode.HTML)
-    else:
-        await log_bot.send_document(MY_ID, buf, caption=caption, parse_mode=ParseMode.HTML)
+    try:
+        if m_type == "photo":
+            await log_bot.send_photo(MY_ID, buf, caption=caption, parse_mode=ParseMode.HTML)
+        elif m_type == "voice":
+            await log_bot.send_voice(MY_ID, buf, caption=caption, parse_mode=ParseMode.HTML)
+        elif m_type == "video":
+            await log_bot.send_video(MY_ID, buf, caption=caption, parse_mode=ParseMode.HTML)
+        else:
+            await log_bot.send_document(MY_ID, buf, caption=caption, parse_mode=ParseMode.HTML)
+        log.info("_send_media_to_admin: отправлено %s (%s)", m_type, fname)
+    except Exception as e:
+        log.error("_send_media_to_admin ОШИБКА: %s — %s", fname, e)
+        raise
 
 
 # ─── Роутер ───────────────────────────────────────────────────────────────────
 
 router = Router()
 
-# Храним bots глобально — нужно хэндлеру удалений
 _biz_bot: Bot | None = None
 _log_bot: Bot | None = None
 
@@ -375,18 +502,27 @@ async def on_business_message(msg: Message, biz_bot: Bot, log_bot: Bot) -> None:
     log.info("📥 Бизнес-сообщение от %s | msg_id=%s | biz_id=%s",
              user_info, msg.message_id, biz_id)
 
-    m_type, file_path = await _detect_and_download(msg, biz_bot)
-    full_user_entry   = f"{user_info} (в чате: {chat_title})"
+    try:
+        m_type, file_path = await _detect_and_download(msg, biz_bot)
+    except Exception as e:
+        log.error("on_business_message: ошибка при обработке медиа — %s", e)
+        m_type, file_path = "text", None
 
-    db_save(
-        m_id=msg.message_id,
-        biz_id=biz_id,
-        user_info=full_user_entry,
-        text=text,
-        file_path=file_path or "",
-        m_type=m_type,
-        status="normal",
-    )
+    full_user_entry = f"{user_info} (в чате: {chat_title})"
+
+    try:
+        db_save(
+            m_id=msg.message_id,
+            biz_id=biz_id,
+            user_info=full_user_entry,
+            text=text,
+            file_path=file_path or "",
+            m_type=m_type,
+            status="normal",
+        )
+    except Exception as e:
+        log.error("on_business_message: ошибка db_save msg_id=%s — %s",
+                  msg.message_id, e)
 
     type_emoji = {"text": "💬", "photo": "🖼", "voice": "🎙", "video": "🎥", "document": "📄"}
     emoji      = type_emoji.get(m_type, "📎")
@@ -403,7 +539,7 @@ async def on_business_message(msg: Message, biz_bot: Bot, log_bot: Bot) -> None:
         else:
             await log_bot.send_message(MY_ID, caption, parse_mode=ParseMode.HTML)
     except Exception as e:
-        log.error("Ошибка отправки лога администратору: %s", e)
+        log.error("on_business_message: ошибка отправки лога — %s", e)
 
 
 # ─── Хэндлер: редактирование бизнес-сообщения ────────────────────────────────
@@ -415,29 +551,32 @@ async def on_edited_business_message(msg: Message, log_bot: Bot) -> None:
     new_text   = msg.text or msg.caption or "—"
     chat_title = msg.chat.full_name or msg.chat.title or "Private Chat"
 
-    log.info("✏️ Отредактировано сообщение от %s | msg_id=%s", user_info, msg.message_id)
+    log.info("✏️ Отредактировано сообщение от %s | msg_id=%s | biz_id=%s",
+             user_info, msg.message_id, biz_id)
 
     row      = db_get(msg.message_id, biz_id)
     old_text = row["text"] if row else "—"
 
     full_user_entry = f"{user_info} (в чате: {chat_title})"
 
-    if row:
-        # Обновляем существующую запись: сохраняем старый текст + новый статус
-        db_mark_edited(msg.message_id, biz_id, new_text, old_text)
-    else:
-        # Записи не было — создаём новую уже с флагом edited
-        db_save(
-            m_id=msg.message_id,
-            biz_id=biz_id,
-            user_info=full_user_entry,
-            text=new_text,
-            old_text=old_text,
-            file_path="",
-            m_type="text",
-            status="edited",
-            is_edited=1,
-        )
+    try:
+        if row:
+            db_mark_edited(msg.message_id, biz_id, new_text, old_text)
+        else:
+            db_save(
+                m_id=msg.message_id,
+                biz_id=biz_id,
+                user_info=full_user_entry,
+                text=new_text,
+                old_text=old_text,
+                file_path="",
+                m_type="text",
+                status="edited",
+                is_edited=1,
+            )
+    except Exception as e:
+        log.error("on_edited_business_message: ошибка записи в БД msg_id=%s — %s",
+                  msg.message_id, e)
 
     detail = (
         f"✏️ <b>ОТРЕДАКТИРОВАНО</b>\n"
@@ -451,7 +590,7 @@ async def on_edited_business_message(msg: Message, log_bot: Bot) -> None:
     try:
         await log_bot.send_message(MY_ID, detail, parse_mode=ParseMode.HTML)
     except Exception as e:
-        log.error("Ошибка отправки уведомления о редактировании: %s", e)
+        log.error("on_edited_business_message: ошибка отправки уведомления — %s", e)
 
 
 # ─── Хэндлер: удалённые бизнес-сообщения ─────────────────────────────────────
@@ -473,6 +612,7 @@ async def on_deleted_business_messages(
         row = db_get(m_id, biz_id)
 
         if not row:
+            log.warning("on_deleted: сообщение msg_id=%s не найдено в архиве", m_id)
             preview = (
                 f"🗑 <b>УДАЛЕНО</b> — сообщение не найдено в архиве\n"
                 f"👥 <b>Чат:</b> {chat_title}\n"
@@ -481,11 +621,13 @@ async def on_deleted_business_messages(
             try:
                 await log_bot.send_message(MY_ID, preview, parse_mode=ParseMode.HTML)
             except Exception as e:
-                log.error("Ошибка уведомления об удалении: %s", e)
+                log.error("on_deleted: ошибка уведомления об удалении — %s", e)
             continue
 
-        # Помечаем в БД как удалённое (текст сохраняется!)
-        db_mark_deleted(m_id, biz_id)
+        try:
+            db_mark_deleted(m_id, biz_id)
+        except Exception as e:
+            log.error("on_deleted: ошибка db_mark_deleted msg_id=%s — %s", m_id, e)
 
         user_info  = row["user_info"]
         text       = row["text"]
@@ -513,12 +655,12 @@ async def on_deleted_business_messages(
             else:
                 await log_bot.send_message(MY_ID, caption, parse_mode=ParseMode.HTML)
         except Exception as e:
-            log.error("Ошибка отправки информации об удалении: %s", e)
+            log.error("on_deleted: ошибка отправки msg_id=%s — %s", m_id, e)
 
 
 # ─── FastAPI веб-сервер ───────────────────────────────────────────────────────
 
-app = FastAPI(title="Business Monitor API", version="2.0")
+app = FastAPI(title="Business Monitor API", version="3.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -532,14 +674,25 @@ app.add_middleware(
 @app.get("/api/users")
 async def api_users() -> JSONResponse:
     """
-    Возвращает список уникальных пользователей/чатов из БД.
-    Формат: [{ id, biz_id, name, initials, raw }, ...]
+    Возвращает список аккаунтов с пользователями.
+    Формат:
+    [
+      {
+        "id": "<biz_id>",
+        "name": "Аккаунт XXXXXXXX",
+        "initials": "АК",
+        "users": [
+          { "id", "biz_id", "name", "initials", "raw", "last_ts" }
+        ]
+      }
+    ]
     """
     try:
-        users = db_get_users()
-        return JSONResponse(content=users)
+        accounts = db_get_users()
+        log.info("API /api/users → %d аккаунтов", len(accounts))
+        return JSONResponse(content=accounts)
     except Exception as e:
-        log.error("API /api/users error: %s", e)
+        log.error("API /api/users ОШИБКА: %s", e, exc_info=True)
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
@@ -548,18 +701,58 @@ async def api_messages(biz_id: str, user_key: str) -> JSONResponse:
     """
     Возвращает все сообщения для пользователя.
     user_key — URL-encoded строка user_info_raw из /api/users.
+    Каждое сообщение содержит поле rowid для инкрементальных запросов.
     """
     try:
         msgs = db_get_messages(biz_id, user_key)
+        log.info("API /api/messages/%s → %d сообщений", biz_id, len(msgs))
         return JSONResponse(content=msgs)
     except Exception as e:
-        log.error("API /api/messages error: %s", e)
+        log.error("API /api/messages ОШИБКА: biz_id=%s — %s", biz_id, e, exc_info=True)
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+@app.get("/api/updates")
+async def api_updates(since: int = Query(default=0, ge=0)) -> JSONResponse:
+    """
+    Инкрементальные обновления — основной эндпоинт для авто-обновления фронта.
+    Параметр: ?since=<rowid>  (фронт передаёт последний известный rowid)
+    Ответ:
+    {
+      "messages":      [...],   // только новые/изменённые записи с rowid > since
+      "max_rowid":     N,       // текущий максимальный rowid в БД
+      "users_changed": bool     // true — нужно перезагрузить /api/users
+    }
+    Фронт вызывает этот эндпоинт каждые N секунд (polling).
+    """
+    try:
+        result = db_get_updates(since)
+        if result["messages"]:
+            log.info(
+                "API /api/updates since=%s → %d записей, max_rowid=%s",
+                since, len(result["messages"]), result["max_rowid"]
+            )
+        return JSONResponse(content=result)
+    except Exception as e:
+        log.error("API /api/updates ОШИБКА: since=%s — %s", since, e, exc_info=True)
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
 @app.get("/api/health")
 async def api_health() -> JSONResponse:
-    return JSONResponse(content={"status": "ok", "ts": _now_iso()})
+    """Проверка состояния сервера."""
+    try:
+        con = sqlite3.connect(DB_PATH)
+        count = con.execute("SELECT COUNT(*) FROM msgs").fetchone()[0]
+        con.close()
+        return JSONResponse(content={
+            "status": "ok",
+            "ts": _now_iso(),
+            "total_messages": count,
+        })
+    except Exception as e:
+        log.error("API /api/health ОШИБКА: %s", e)
+        return JSONResponse(content={"status": "error", "error": str(e)}, status_code=500)
 
 
 # ─── Запуск ───────────────────────────────────────────────────────────────────
@@ -594,21 +787,24 @@ async def main() -> None:
     dp.include_router(router)
     dp.observers["deleted_business_messages"].register(on_deleted_business_messages)
 
-    await _biz_bot.delete_webhook(drop_pending_updates=True)
-    await _log_bot.delete_webhook(drop_pending_updates=True)
-    log.info("Вебхуки очищены. Стартуем поллинг + API сервер…")
+    try:
+        await _biz_bot.delete_webhook(drop_pending_updates=True)
+        await _log_bot.delete_webhook(drop_pending_updates=True)
+        log.info("Вебхуки очищены. Стартуем поллинг + API сервер…")
+    except Exception as e:
+        log.error("Ошибка очистки вебхуков: %s", e)
 
     try:
         await _log_bot.send_message(
             MY_ID,
-            f"🟢 <b>Business Monitor v2 запущен</b>\n"
+            f"🟢 <b>Business Monitor v3 запущен</b>\n"
             f"📡 API доступен на <code>http://{API_HOST}:{API_PORT}</code>\n"
+            f"🔄 Авто-обновление фронта: /api/updates\n"
             f"Отслеживаю бизнес-чаты…",
         )
     except Exception as e:
         log.warning("Не удалось отправить стартовое уведомление: %s", e)
 
-    # Запускаем polling и веб-сервер параллельно в одном event loop
     await asyncio.gather(
         dp.start_polling(
             _biz_bot,

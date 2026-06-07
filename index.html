@@ -39,7 +39,6 @@ body {
   overflow: hidden;
 }
 
-/* ── SHELL GRID (3 колонки: Аккаунты слева, чат в центре, поиск справа) ── */
 .shell {
   width: 100%;
   height: 100vh;
@@ -102,9 +101,8 @@ body {
 .users-bar::-webkit-scrollbar-track { background: transparent; }
 .users-bar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-/* ── АККАУНТ-ГРУППА (КАТЕГОРИИ ИЗ INDEX 5) ── */
-.account-group { 
-  border-bottom: 1px solid var(--border-lite); 
+.account-group {
+  border-bottom: 1px solid var(--border-lite);
 }
 
 .account-row {
@@ -161,7 +159,6 @@ body {
 }
 .account-users.open { display: flex; }
 
-/* Loading skeleton chips */
 .chip-skeleton {
   width: 100%;
   height: 38px;
@@ -206,6 +203,17 @@ body {
 }
 .user-chip.active .chip-name { color: #fff; font-weight: 700; }
 .user-chip.active .avatar    { background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.3); }
+
+/* индикатор нового сообщения */
+.user-chip.has-new {
+  border-color: var(--accent-hi);
+}
+.user-chip.has-new .chip-name::after {
+  content: ' •';
+  color: var(--accent-hi);
+  font-size: 14px;
+  line-height: 1;
+}
 
 .avatar {
   width: 27px; height: 27px;
@@ -305,6 +313,30 @@ body {
   margin-top: 2px;
 }
 
+/* ── ИНДИКАТОР АВТО-ОБНОВЛЕНИЯ ── */
+.live-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+.live-dot.paused {
+  background: var(--text-dim);
+  box-shadow: none;
+  animation: none;
+}
+.live-dot.error {
+  background: var(--red);
+  box-shadow: 0 0 6px var(--red);
+  animation: none;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.45; transform: scale(0.75); }
+}
+
 .refresh-btn {
   background: transparent;
   border: 1.5px solid var(--border);
@@ -393,6 +425,17 @@ body {
   color: var(--red);
   border: 1px solid rgba(255,92,106,0.3);
 }
+.badge-new {
+  background: rgba(62,255,160,0.13);
+  color: var(--green);
+  border: 1px solid rgba(62,255,160,0.3);
+  animation: fadeout-badge 4s forwards;
+}
+@keyframes fadeout-badge {
+  0%   { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; width: 0; padding: 0; margin: 0; border: none; overflow: hidden; }
+}
 
 .msg.is-deleted {
   opacity: 0.52;
@@ -440,7 +483,7 @@ mark {
   padding: 0 2px;
 }
 
-/* ── SEARCH ZONE ── */
+/* ── ПОИСК ── */
 .search-zone {
   background: var(--panel-deep);
   display: flex;
@@ -537,9 +580,7 @@ mark {
   margin-bottom: 3px;
   opacity: 0.8;
 }
-.search-result-item .result-account { font-size: 9px; color: var(--text-dim); margin-bottom: 2px; }
 
-/* Пользователь в глобальном поиске */
 .user-result-chip {
   display: flex;
   align-items: center;
@@ -636,41 +677,17 @@ mark {
   transition: transform 0.3s ease, color 0.15s;
   user-select: none;
 }
-.panel-toggle:hover .arrow {
-  color: #fff;
-}
+.panel-toggle:hover .arrow { color: #fff; }
 
-/* Collapsed state */
-.shell.accounts-collapsed {
-  grid-template-columns: 0px 1fr 260px;
-}
-.shell.accounts-collapsed .accounts-zone {
-  opacity: 0;
-  pointer-events: none;
-}
-.shell.accounts-collapsed .panel-toggle {
-  left: 0px;
-  border-radius: 0 6px 6px 0;
-}
-.shell.accounts-collapsed .panel-toggle .arrow {
-  transform: rotate(180deg);
-}
+.shell.accounts-collapsed { grid-template-columns: 0px 1fr 260px; }
+.shell.accounts-collapsed .accounts-zone { opacity: 0; pointer-events: none; }
+.shell.accounts-collapsed .panel-toggle { left: 0px; border-radius: 0 6px 6px 0; }
+.shell.accounts-collapsed .panel-toggle .arrow { transform: rotate(180deg); }
 
-/* Transition for smooth collapse */
-.accounts-zone {
-  transition: opacity 0.25s ease;
-}
-.shell {
-  transition: grid-template-columns 0.3s ease;
-}
+.accounts-zone { transition: opacity 0.25s ease; }
+.shell { transition: grid-template-columns 0.3s ease; }
 
-/* Mobile: hide toggle */
-@media (max-width: 768px) {
-  .panel-toggle {
-    display: none;
-  }
-}
-
+@media (max-width: 768px) { .panel-toggle { display: none; } }
 </style>
 </head>
 <body>
@@ -705,7 +722,8 @@ mark {
           <div class="user-name" id="headerName"></div>
           <div class="user-status" id="headerStatus"></div>
         </div>
-        <button class="refresh-btn" id="refreshBtn" title="Обновить" onclick="refreshMessages()">↻</button>
+        <div class="live-dot" id="liveDot" title="Авто-обновление активно"></div>
+        <button class="refresh-btn" id="refreshBtn" title="Обновить вручную" onclick="refreshMessages()">↻</button>
       </div>
       <div class="messages-list" id="messagesList"></div>
     </div>
@@ -727,58 +745,302 @@ mark {
 </div>
 
 <script>
+'use strict';
+
+// ══════════════════════════════════════════════════════════
+// ЛОГГЕР — все ошибки и события пишем в консоль браузера
+// с единым форматом и уровнями: info / warn / error
+// ══════════════════════════════════════════════════════════
+const logger = {
+  _fmt: (lvl, msg, data) => {
+    const ts = new Date().toLocaleTimeString('ru-RU');
+    const prefix = `[${ts}] [Monitor/${lvl}]`;
+    if (data !== undefined) console[lvl === 'error' ? 'error' : lvl === 'warn' ? 'warn' : 'log'](prefix, msg, data);
+    else                     console[lvl === 'error' ? 'error' : lvl === 'warn' ? 'warn' : 'log'](prefix, msg);
+  },
+  info:  (msg, data) => logger._fmt('info',  msg, data),
+  warn:  (msg, data) => logger._fmt('warn',  msg, data),
+  error: (msg, data) => logger._fmt('error', msg, data),
+};
+
+// ══════════════════════════════════════════════════════════
+// КОНФИГУРАЦИЯ
+// ══════════════════════════════════════════════════════════
+// Замените на реальный адрес вашего сервера с bot_3.py
+const API_BASE        = 'http://localhost:8000';
+const POLL_INTERVAL   = 5000;   // мс — интервал авто-обновления (5 сек)
+const POLL_ERROR_MAX  = 5;       // после N ошибок подряд — пауза
+
+// ══════════════════════════════════════════════════════════
+// СОСТОЯНИЕ ПРИЛОЖЕНИЯ
+// ══════════════════════════════════════════════════════════
+let accounts    = [];          // [ { id, name, initials, open, users:[] } ]
+let messages    = {};          // { userId: [ ...msg ] }
+let activeUser  = null;        // текущий выбранный пользователь
+
+// Курсор инкрементальных обновлений
+let maxRowid    = 0;
+let pollTimer   = null;
+let pollErrors  = 0;
+let pollActive  = true;
+
+// ══════════════════════════════════════════════════════════
+// TELEGRAM MINI APP
+// ══════════════════════════════════════════════════════════
 if (window.Telegram && window.Telegram.WebApp) {
   window.Telegram.WebApp.ready();
   window.Telegram.WebApp.expand();
 }
 
-const API_BASE = 'https://aerov11.github.io/b9f2e4c8a17d4e3f89a2bc1d0e5f6a7b/';
-let accounts = []; // [ { id, name, initials, username?, open?, users:[] } ]
-let messages = {}; // { userId: [...] }
-let activeUser = null;
-
-// ══════════════════════════════════════
-// API ЗАПРОСЫ
-// ══════════════════════════════════════
-async function fetchUsers() {
-  const resp = await fetch(`${API_BASE}/api/users`);
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  return resp.json();
-}
-
-async function fetchMessages(bizId, encoded) {
-  const resp = await fetch(`${API_BASE}/api/messages/${encodeURIComponent(bizId)}/${encoded}`);
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  return resp.json();
-}
-
-async function init() {
+// ══════════════════════════════════════════════════════════
+// API СЛОЙ — все fetch с подробным логированием ошибок
+// ══════════════════════════════════════════════════════════
+async function apiFetch(path, label) {
+  const url = `${API_BASE}${path}`;
+  logger.info(`→ ${label}`, url);
+  let resp;
   try {
-    accounts = await fetchUsers();
-    
-    // По умолчанию раскрываем все аккаунты
+    resp = await fetch(url);
+  } catch (networkErr) {
+    logger.error(`${label}: сетевая ошибка (сервер недоступен?)`, networkErr);
+    throw new Error(`Сетевая ошибка: ${networkErr.message}`);
+  }
+  if (!resp.ok) {
+    let body = '';
+    try { body = await resp.text(); } catch (_) {}
+    logger.error(`${label}: HTTP ${resp.status}`, { url, body });
+    throw new Error(`HTTP ${resp.status}: ${body.slice(0, 200)}`);
+  }
+  let json;
+  try {
+    json = await resp.json();
+  } catch (parseErr) {
+    logger.error(`${label}: не удалось распарсить JSON`, parseErr);
+    throw new Error(`Ошибка парсинга JSON: ${parseErr.message}`);
+  }
+  if (json && json.error) {
+    logger.error(`${label}: сервер вернул ошибку`, json.error);
+    throw new Error(`Ошибка сервера: ${json.error}`);
+  }
+  logger.info(`← ${label} OK`);
+  return json;
+}
+
+async function fetchUsers() {
+  return apiFetch('/api/users', 'fetchUsers');
+}
+
+async function fetchMessages(bizId, rawUserInfo) {
+  const encoded = encodeURIComponent(rawUserInfo);
+  return apiFetch(`/api/messages/${encodeURIComponent(bizId)}/${encoded}`, 'fetchMessages');
+}
+
+async function fetchUpdates(sinceRowid) {
+  return apiFetch(`/api/updates?since=${sinceRowid}`, 'fetchUpdates');
+}
+
+// ══════════════════════════════════════════════════════════
+// ИНИЦИАЛИЗАЦИЯ
+// ══════════════════════════════════════════════════════════
+async function init() {
+  logger.info('init: загружаем пользователей…');
+  try {
+    const data = await fetchUsers();
+    // /api/users теперь возвращает сгруппированные аккаунты
+    accounts = Array.isArray(data) ? data : [];
     accounts.forEach(acc => {
       if (acc.open === undefined) acc.open = true;
+      if (!Array.isArray(acc.users)) acc.users = [];
     });
-    
+    logger.info('init: загружено аккаунтов', accounts.length);
     buildUsersBar();
+
+    // Загружаем начальный max_rowid через /api/updates?since=0
+    try {
+      const upd = await fetchUpdates(0);
+      maxRowid = upd.max_rowid || 0;
+      logger.info('init: начальный max_rowid', maxRowid);
+    } catch (e) {
+      logger.warn('init: не удалось получить начальный rowid', e);
+    }
+
+    startPolling();
   } catch (err) {
-    console.error('Ошибка загрузки пользователей:', err);
+    logger.error('init: критическая ошибка загрузки пользователей', err);
     const bar = document.getElementById('usersBar');
-    bar.innerHTML = `<div style="color:var(--red);font-size:11px;padding:14px;font-family:'Onest',sans-serif;">⚠️ Не удалось загрузить пользователей. Проверьте API.</div>`;
+    bar.innerHTML = `<div style="color:var(--red);font-size:11px;padding:14px;font-family:'Onest',sans-serif;">
+      ⚠️ Не удалось загрузить пользователей.<br>
+      <span style="color:var(--text-dim);font-size:10px;">${esc(err.message)}</span><br><br>
+      <span style="color:var(--text-dim);font-size:10px;">Убедитесь, что bot_3.py запущен и API_BASE указан верно.</span>
+    </div>`;
     document.getElementById('accountsCount').textContent = '0';
+    setLiveDot('error');
   }
 }
 
-// ══════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// POLLING — инкрементальные обновления через /api/updates
+// ══════════════════════════════════════════════════════════
+function startPolling() {
+  if (pollTimer) clearTimeout(pollTimer);
+  logger.info('startPolling: интервал', POLL_INTERVAL + 'мс');
+  schedulePoll();
+}
+
+function schedulePoll() {
+  const delay = pollErrors > 0
+    ? Math.min(POLL_INTERVAL * Math.pow(2, pollErrors - 1), 60000) // exponential backoff
+    : POLL_INTERVAL;
+  pollTimer = setTimeout(doPoll, delay);
+}
+
+async function doPoll() {
+  if (!pollActive) {
+    logger.info('doPoll: polling на паузе');
+    schedulePoll();
+    return;
+  }
+
+  try {
+    const upd = await fetchUpdates(maxRowid);
+
+    if (upd.max_rowid && upd.max_rowid > maxRowid) {
+      logger.info('doPoll: получено обновлений', upd.messages.length,
+                  `(rowid ${maxRowid} → ${upd.max_rowid})`);
+      maxRowid = upd.max_rowid;
+
+      // Если изменился список пользователей — перезагружаем левую панель
+      if (upd.users_changed) {
+        logger.info('doPoll: список пользователей изменился, перезагружаем…');
+        try {
+          const newAccounts = await fetchUsers();
+          mergeAccounts(newAccounts);
+          buildUsersBar();
+        } catch (e) {
+          logger.warn('doPoll: не удалось обновить список пользователей', e);
+        }
+      }
+
+      // Применяем новые/изменённые сообщения к кешу
+      if (upd.messages.length > 0) {
+        applyUpdates(upd.messages);
+      }
+    }
+
+    pollErrors = 0;
+    setLiveDot('ok');
+  } catch (err) {
+    pollErrors++;
+    logger.error(`doPoll: ошибка (${pollErrors}/${POLL_ERROR_MAX})`, err);
+    if (pollErrors >= POLL_ERROR_MAX) {
+      setLiveDot('error');
+      logger.warn('doPoll: слишком много ошибок, включён backoff');
+    } else {
+      setLiveDot('ok');
+    }
+  }
+
+  schedulePoll();
+}
+
+/**
+ * Применяем пришедшие дельта-записи к локальному кешу messages{}.
+ * Если активный чат затронут — перерисовываем сообщения.
+ */
+function applyUpdates(newMsgs) {
+  const touchedUsers = new Set();
+
+  newMsgs.forEach(rec => {
+    const userId = `${rec.biz_id}::${rec.user_info}`;
+    touchedUsers.add(userId);
+
+    if (!messages[userId]) messages[userId] = [];
+    const cache = messages[userId];
+
+    // ищем существующее сообщение по m_id
+    const existIdx = cache.findIndex(m => m.m_id === rec.m_id);
+    // строим объект в формате как fetchMessages возвращает
+    const msgObj = {
+      rowid:      rec.rowid,
+      m_id:       rec.m_id,
+      text:       rec.text || '',
+      old_text:   rec.old_text || '',
+      m_type:     rec.m_type,
+      file_path:  rec.file_path || '',
+      status:     rec.status || 'normal',
+      is_edited:  rec.is_edited,
+      is_deleted: rec.is_deleted,
+      ts:         rec.ts || '',
+      _isNew:     existIdx === -1, // флаг «только что пришло»
+    };
+
+    if (existIdx !== -1) {
+      cache[existIdx] = msgObj;
+      logger.info('applyUpdates: обновлено сообщение m_id=' + rec.m_id + ' статус=' + rec.status);
+    } else {
+      cache.push(msgObj);
+      logger.info('applyUpdates: новое сообщение m_id=' + rec.m_id + ' от ' + rec.user_info);
+    }
+  });
+
+  // Если текущий открытый чат затронут — перерисовать
+  if (activeUser && touchedUsers.has(activeUser.id)) {
+    logger.info('applyUpdates: перерисовываем активный чат');
+    const query = document.getElementById('searchInput').value.trim();
+    renderMessages(messages[activeUser.id], query);
+    const total = messages[activeUser.id].length;
+    document.getElementById('headerStatus').textContent = `всего ${total}`;
+  }
+
+  // Обновляем индикаторы «есть новые» у чипов в левой панели
+  touchedUsers.forEach(uid => {
+    if (!activeUser || activeUser.id !== uid) {
+      const chip = document.querySelector(`.user-chip[data-id="${CSS.escape(uid)}"]`);
+      if (chip) chip.classList.add('has-new');
+    }
+  });
+}
+
+/**
+ * Мерджим свежий список аккаунтов (с сервера) в текущий,
+ * сохраняя локальные флаги open и не сбрасывая активного пользователя.
+ */
+function mergeAccounts(newAccounts) {
+  if (!Array.isArray(newAccounts)) return;
+  const openState = {};
+  accounts.forEach(acc => { openState[acc.id] = acc.open; });
+
+  accounts = newAccounts.map(acc => ({
+    ...acc,
+    open: openState[acc.id] !== undefined ? openState[acc.id] : true,
+    users: Array.isArray(acc.users) ? acc.users : [],
+  }));
+  logger.info('mergeAccounts: аккаунтов после мерджа', accounts.length);
+}
+
+// ══════════════════════════════════════════════════════════
+// ИНДИКАТОР LIVE-DOT
+// ══════════════════════════════════════════════════════════
+function setLiveDot(state) {
+  const dot = document.getElementById('liveDot');
+  if (!dot) return;
+  dot.className = 'live-dot' + (state === 'error' ? ' error' : state === 'paused' ? ' paused' : '');
+  dot.title = state === 'error'  ? 'Авто-обновление: ошибка подключения'
+            : state === 'paused' ? 'Авто-обновление: на паузе'
+            : 'Авто-обновление активно';
+}
+
+// ══════════════════════════════════════════════════════════
 // ПОСТРОЕНИЕ ДРЕВА АККАУНТОВ И ПОЛЬЗОВАТЕЛЕЙ
-// ══════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 function buildUsersBar() {
   const bar = document.getElementById('usersBar');
   bar.innerHTML = '';
-  
-  document.getElementById('accountsCount').textContent = accounts.length;
-  
+
+  // Считаем всех пользователей по всем аккаунтам
+  const totalUsers = accounts.reduce((s, a) => s + (a.users || []).length, 0);
+  document.getElementById('accountsCount').textContent = totalUsers;
+
   if (!accounts.length) {
     bar.innerHTML = `<div class="no-results" style="padding:20px">Нет аккаунтов</div>`;
     return;
@@ -788,14 +1050,14 @@ function buildUsersBar() {
     const group = document.createElement('div');
     group.className = 'account-group';
 
-    // 1. Строка аккаунта (категории)
     const row = document.createElement('div');
     row.className = 'account-row' + (acc.open ? ' open' : '');
+    const usersLen = (acc.users || []).length;
     row.innerHTML = `
-      <div class="acc-avatar">${esc(acc.initials)}</div>
+      <div class="acc-avatar">${esc(acc.initials || '??')}</div>
       <div class="acc-body">
-        <div class="acc-name">${esc(acc.name)}</div>
-        ${acc.username ? `<div class="acc-sub">@${esc(acc.username)}</div>` : `<div class="acc-sub">${acc.users.length} чатов</div>`}
+        <div class="acc-name">${esc(acc.name || acc.id)}</div>
+        <div class="acc-sub">${usersLen} чат${usersLen === 1 ? '' : 'ов'}</div>
       </div>
       <span class="acc-toggle">›</span>
     `;
@@ -805,16 +1067,12 @@ function buildUsersBar() {
     };
     group.appendChild(row);
 
-    // 2. Контейнер пользователей
     const userList = document.createElement('div');
     userList.className = 'account-users' + (acc.open ? ' open' : '');
 
-    if (acc.open) {
-      // Считаем дубликаты имён внутри текущего аккаунта
+    if (acc.open && usersLen > 0) {
       const nameCounts = {};
-      acc.users.forEach(u => {
-        nameCounts[u.name] = (nameCounts[u.name] || 0) + 1;
-      });
+      acc.users.forEach(u => { nameCounts[u.name] = (nameCounts[u.name] || 0) + 1; });
 
       acc.users.forEach(u => {
         const chip = document.createElement('div');
@@ -823,28 +1081,28 @@ function buildUsersBar() {
         chip.dataset.id = u.id;
 
         const hasDupe = nameCounts[u.name] > 1;
-        const nameHtml = hasDupe 
-          ? `${esc(u.name)} <span style="opacity:0.5;font-size:10px">#${u.id.slice(-4)}</span>` 
+        const nameHtml = hasDupe
+          ? `${esc(u.name)} <span style="opacity:0.5;font-size:10px">#${String(u.id).slice(-4)}</span>`
           : esc(u.name);
 
         chip.innerHTML = `
-          <div class="avatar">${esc(u.initials)}</div>
+          <div class="avatar">${esc(u.initials || '??')}</div>
           <div class="chip-body">
             <div class="chip-name">${nameHtml}</div>
-            ${u.username ? `<div class="chip-sub">@${esc(u.username)}</div>` : ''}
+            ${u.last_ts ? `<div class="chip-sub">${formatTs(u.last_ts)}</div>` : ''}
           </div>
         `;
-        
         chip.onclick = () => selectUser(u);
         userList.appendChild(chip);
       });
+    } else if (acc.open && usersLen === 0) {
+      userList.innerHTML = `<div style="padding:8px;font-size:10px;color:var(--text-dim)">Нет пользователей</div>`;
     }
-    
+
     group.appendChild(userList);
     bar.appendChild(group);
   });
 
-  // Автоскролл к активному чипу чата
   requestAnimationFrame(() => {
     const active = bar.querySelector('.user-chip.active');
     if (active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -852,129 +1110,138 @@ function buildUsersBar() {
 }
 
 async function selectUser(user) {
+  logger.info('selectUser', user.id);
   activeUser = user;
+
+  // Снимаем индикатор «новые» с выбранного чипа
+  const chip = document.querySelector(`.user-chip[data-id="${CSS.escape(user.id)}"]`);
+  if (chip) chip.classList.remove('has-new');
+
   buildUsersBar();
-  
+
   document.getElementById('noUserPlaceholder').style.display = 'none';
-  const chatArea = document.getElementById('chatArea');
-  chatArea.classList.add('visible');
-  
-  document.getElementById('headerAvatar').textContent = user.initials;
-  document.getElementById('headerName').textContent = user.name;
+  document.getElementById('chatArea').classList.add('visible');
+  document.getElementById('headerAvatar').textContent = user.initials || '??';
+  document.getElementById('headerName').textContent   = user.name;
   document.getElementById('headerStatus').textContent = 'загрузка…';
-  document.getElementById('messagesList').innerHTML = loadingState();
-  
+  document.getElementById('messagesList').innerHTML   = loadingState();
+
   clearSearch();
   await loadMessages(user);
 }
 
 async function loadMessages(user) {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
   try {
-    const btn = document.getElementById('refreshBtn');
-    btn.classList.add('spinning');
-    
     const msgs = await fetchMessages(user.biz_id, user.raw);
     messages[user.id] = msgs;
-    
+    logger.info('loadMessages: загружено', msgs.length, 'сообщений для', user.name);
+
     if (activeUser && activeUser.id === user.id) {
       renderMessages(msgs);
       document.getElementById('headerStatus').textContent = `всего ${msgs.length}`;
     }
   } catch (err) {
-    console.error(err);
+    logger.error('loadMessages: ошибка', err);
     if (activeUser && activeUser.id === user.id) {
-      document.getElementById('messagesList').innerHTML = `<div class="state-msg"><div class="icon">⚠️</div>Ошибка загрузки истории</div>`;
+      document.getElementById('messagesList').innerHTML = `
+        <div class="state-msg">
+          <div class="icon">⚠️</div>
+          Ошибка загрузки истории<br>
+          <span style="font-size:10px;color:var(--text-dim);margin-top:4px">${esc(err.message)}</span>
+        </div>`;
       document.getElementById('headerStatus').textContent = 'ошибка';
     }
   } finally {
-    document.getElementById('refreshBtn').classList.remove('spinning');
+    btn.classList.remove('spinning');
   }
 }
 
-function refreshMessages() {
-  if (activeUser) loadMessages(activeUser);
+async function refreshMessages() {
+  if (!activeUser) return;
+  logger.info('refreshMessages: ручное обновление для', activeUser.name);
+  await loadMessages(activeUser);
 }
 
 function loadingState() {
-  return `
-    <div class="state-msg">
-      <div class="icon" style="animation: spin 1s linear infinite">🔄</div>
-      Загрузка диалога…
-    </div>
-  `;
+  return `<div class="state-msg"><div class="icon" style="animation:spin 1s linear infinite">🔄</div>Загрузка диалога…</div>`;
 }
 
-// ══════════════════════════════════════
-// ОТРИСОВКА СООБЩЕНИЙ ЧАТА
-// ══════════════════════════════════════
-function renderMessages(msgs = null, highlight = '') {
+// ══════════════════════════════════════════════════════════
+// ОТРИСОВКА СООБЩЕНИЙ
+// ══════════════════════════════════════════════════════════
+function renderMessages(msgs, highlight) {
   const list = document.getElementById('messagesList');
   if (!msgs && activeUser) msgs = messages[activeUser.id] || [];
   if (!msgs) return;
+
+  const wasAtBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 60;
 
   if (!msgs.length) {
     list.innerHTML = `<div class="state-msg"><div class="icon">📭</div>Нет сообщений</div>`;
     return;
   }
 
-  list.innerHTML = '';
-  msgs.forEach((msg, idx) => {
-    const div = document.createElement('div');
-    const isMatched = highlight && (msg.text || '').toLowerCase().includes(highlight.toLowerCase());
-    div.className = 'msg incoming' + (msg.is_deleted ? ' is-deleted' : '') + (isMatched ? ' highlighted' : '');
-    div.dataset.idx = idx;
-
-    const typeIcons = { text: '', photo: '🖼 ', voice: '🎙 ', video: '🎥 ', document: '📄 ' };
-    const typeIcon = typeIcons[msg.m_type] || '📎 ';
-    let displayText = esc(msg.text || (msg.is_deleted ? '[текст удалён]' : '—'));
-
-    if (highlight) {
-      const rx = new RegExp(`(${escRx(highlight)})`, 'gi');
-      displayText = displayText.replace(rx, '<mark>$1</mark>');
-    }
-
-    let badges = '';
-    if (msg.is_deleted) {
-      badges += `<span class="badge badge-deleted">🗑 Удалено</span>`;
-    }
-    if (msg.is_edited && !msg.is_deleted) {
-      badges += `<span class="badge badge-edited">✏️ Отредактировано</span>`;
-    }
-
-    let oldTextBlock = '';
-    if (msg.is_edited && !msg.is_deleted && msg.old_text) {
-      let oldDisplay = esc(msg.old_text);
-      if (highlight) {
-        const rx = new RegExp(`(${escRx(highlight)})`, 'gi');
-        oldDisplay = oldDisplay.replace(rx, '<mark>$1</mark>');
-      }
-      oldTextBlock = `
-        <div class="old-text-block">
-          <div class="old-text-label">Было</div>
-          ${oldDisplay}
-        </div>`;
-    }
-
-    div.innerHTML = `
-      <span class="msg-type-icon">${typeIcon}</span><span class="msg-text">${displayText}</span>
-      ${oldTextBlock}
-      <div class="msg-meta">
-        ${badges}
-        <span class="msg-time">${formatTs(msg.ts)}</span>
-      </div>`;
-    list.appendChild(div);
-  });
-
-  list.scrollTop = list.scrollHeight;
+  // Перерисовываем только если изменился контент (оптимизация)
+  const newHtml = msgs.map((msg, idx) => buildMsgHtml(msg, idx, highlight || '')).join('');
+  if (list.innerHTML !== newHtml) {
+    list.innerHTML = newHtml;
+    if (wasAtBottom) list.scrollTop = list.scrollHeight;
+  }
 }
 
-// ══════════════════════════════════════
-// ГЛОБАЛЬНЫЙ ПОИСК ПО СООБЩЕНИЯМ И ЮЗЕРАМ
-// ══════════════════════════════════════
+function buildMsgHtml(msg, idx, highlight) {
+  const isMatched = highlight && (msg.text || '').toLowerCase().includes(highlight.toLowerCase());
+  const classes   = 'msg incoming'
+    + (msg.is_deleted ? ' is-deleted' : '')
+    + (isMatched      ? ' highlighted' : '');
+
+  const typeIcons = { text: '', photo: '🖼 ', voice: '🎙 ', video: '🎥 ', document: '📄 ' };
+  const typeIcon  = typeIcons[msg.m_type] || '📎 ';
+  let displayText = esc(msg.text || (msg.is_deleted ? '[текст удалён]' : '—'));
+
+  if (highlight) {
+    const rx = new RegExp(`(${escRx(highlight)})`, 'gi');
+    displayText = displayText.replace(rx, '<mark>$1</mark>');
+  }
+
+  let badges = '';
+  if (msg.is_deleted) badges += `<span class="badge badge-deleted">🗑 Удалено</span>`;
+  if (msg.is_edited && !msg.is_deleted) badges += `<span class="badge badge-edited">✏️ Отредактировано</span>`;
+  if (msg._isNew) badges += `<span class="badge badge-new">✦ Новое</span>`;
+
+  let oldTextBlock = '';
+  if (msg.is_edited && !msg.is_deleted && msg.old_text) {
+    let oldDisplay = esc(msg.old_text);
+    if (highlight) {
+      const rx = new RegExp(`(${escRx(highlight)})`, 'gi');
+      oldDisplay = oldDisplay.replace(rx, '<mark>$1</mark>');
+    }
+    oldTextBlock = `
+      <div class="old-text-block">
+        <div class="old-text-label">Было</div>
+        ${oldDisplay}
+      </div>`;
+  }
+
+  return `<div class="${classes}" data-idx="${idx}" data-mid="${msg.m_id}">
+    <span class="msg-type-icon">${typeIcon}</span><span class="msg-text">${displayText}</span>
+    ${oldTextBlock}
+    <div class="msg-meta">
+      ${badges}
+      <span class="msg-time">${formatTs(msg.ts)}</span>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// ГЛОБАЛЬНЫЙ ПОИСК
+// ══════════════════════════════════════════════════════════
 function doSearch() {
-  const query = document.getElementById('searchInput').value.trim();
+  const query     = document.getElementById('searchInput').value.trim();
   const resultsEl = document.getElementById('searchResults');
-  const countEl = document.getElementById('searchCount');
+  const countEl   = document.getElementById('searchCount');
 
   if (!query) {
     resultsEl.innerHTML = '<div class="no-results">Введите запрос для поиска</div>';
@@ -984,20 +1251,17 @@ function doSearch() {
   }
 
   const q = query.toLowerCase();
-  
-  // 1. Ищем пользователей по всем аккаунтам
+
   const userMatches = [];
   accounts.forEach(acc => {
-    acc.users.forEach(u => {
+    (acc.users || []).forEach(u => {
       const uName = (u.name || '').toLowerCase();
-      const uUser = (u.username || '').toLowerCase();
-      if (uName.includes(q) || uUser.includes(q) || ('@' + uUser).includes(q)) {
-        userMatches.push({ user: u, acc: acc });
+      if (uName.includes(q) || ('@' + uName).includes(q)) {
+        userMatches.push({ user: u, acc });
       }
     });
   });
 
-  // 2. Ищем сообщения в загруженной кеш-истории
   const msgMatches = [];
   Object.keys(messages).forEach(userId => {
     const userObj = findUserGlobal(userId);
@@ -1011,14 +1275,13 @@ function doSearch() {
 
   resultsEl.innerHTML = '';
   const total = userMatches.length + msgMatches.length;
-  countEl.textContent = `Найдено результатов: ${total}`;
+  countEl.textContent = `Найдено: ${total}`;
 
   if (total === 0) {
     resultsEl.innerHTML = '<div class="no-results">Ничего не найдено</div>';
     return;
   }
 
-  // Отрендерить найденных юзеров
   if (userMatches.length) {
     const label = document.createElement('div');
     label.className = 'search-section-label';
@@ -1026,34 +1289,26 @@ function doSearch() {
     resultsEl.appendChild(label);
 
     userMatches.forEach(item => {
-      const u = item.user;
+      const u  = item.user;
       const rx = new RegExp(`(${escRx(q.replace(/^@/, ''))})`, 'gi');
       const hiName = esc(u.name || '').replace(rx, '<mark>$1</mark>');
-      const hiUser = u.username ? esc('@' + u.username).replace(rx, '<mark>$1</mark>') : '';
-      const acctLine = `<div class="urc-acct">📱 ${esc(item.acc.name)}</div>`;
-
       const chip = document.createElement('div');
       chip.className = 'user-result-chip';
       chip.innerHTML = `
-        <div class="urc-avatar">${esc(u.initials)}</div>
+        <div class="urc-avatar">${esc(u.initials || '??')}</div>
         <div class="urc-body">
           <div class="urc-name">${hiName}</div>
-          ${hiUser ? `<div class="urc-sub">${hiUser}</div>` : ''}
-          ${acctLine}
+          <div class="urc-acct">📱 ${esc(item.acc.name || item.acc.id)}</div>
         </div>
       `;
       chip.onclick = async () => {
-        if (!item.acc.open) {
-          item.acc.open = true;
-          buildUsersBar();
-        }
+        if (!item.acc.open) { item.acc.open = true; buildUsersBar(); }
         await selectUser(u);
       };
       resultsEl.appendChild(chip);
     });
   }
 
-  // Отрендерить найденные сообщения
   if (msgMatches.length) {
     const label = document.createElement('div');
     label.className = 'search-section-label';
@@ -1063,21 +1318,15 @@ function doSearch() {
     msgMatches.forEach(item => {
       const div = document.createElement('div');
       div.className = 'search-result-item';
-
-      let textSnippet = esc(item.msg.text || '');
       const rx = new RegExp(`(${escRx(q)})`, 'gi');
-      textSnippet = textSnippet.replace(rx, '<mark>$1</mark>');
-
+      let snippet = esc(item.msg.text || '').replace(rx, '<mark>$1</mark>');
       div.innerHTML = `
         <div class="result-from">👤 ${esc(item.user.name)}</div>
-        <div style="opacity:0.85">${textSnippet}</div>
+        <div style="opacity:0.85">${snippet}</div>
         <div class="msg-time" style="margin-top:4px">${formatTs(item.msg.ts)}</div>
       `;
-
       div.onclick = async () => {
-        if (activeUser?.id !== item.userId) {
-          await selectUser(item.user);
-        }
+        if (activeUser?.id !== item.userId) await selectUser(item.user);
         renderMessages(messages[item.userId], query);
         setTimeout(() => {
           const target = document.querySelector(`.msg[data-idx="${item.idx}"]`);
@@ -1087,11 +1336,14 @@ function doSearch() {
       resultsEl.appendChild(div);
     });
   }
+
+  // Подсвечиваем в открытом чате
+  if (activeUser) renderMessages(messages[activeUser.id], query);
 }
 
 function findUserGlobal(id) {
   for (const acc of accounts) {
-    const found = acc.users.find(u => String(u.id) === String(id));
+    const found = (acc.users || []).find(u => String(u.id) === String(id));
     if (found) return found;
   }
   return null;
@@ -1104,9 +1356,9 @@ function clearSearch() {
   if (activeUser) renderMessages();
 }
 
-// ══════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 // УТИЛИТЫ
-// ══════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 function esc(s) {
   if (!s) return '';
   return String(s)
@@ -1127,36 +1379,36 @@ function formatTs(ts) {
     if (isNaN(d)) return ts;
     const today = new Date();
     const sameDay = d.toDateString() === today.toDateString();
-    if (sameDay) {
-      return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    }
+    if (sameDay) return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
       + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   } catch (e) { return ts; }
 }
 
-// Запуск приложения
-init();
-
-// ══════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 // TOGGLE ACCOUNTS PANEL
-// ══════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 let accountsPanelOpen = true;
 
 function toggleAccountsPanel() {
   const shell = document.querySelector('.shell');
   const arrow = document.getElementById('panelArrow');
   accountsPanelOpen = !accountsPanelOpen;
-
   if (accountsPanelOpen) {
     shell.classList.remove('accounts-collapsed');
     arrow.textContent = '◀';
+    pollActive = true;
+    setLiveDot('ok');
   } else {
     shell.classList.add('accounts-collapsed');
     arrow.textContent = '▶';
   }
 }
 
+// ══════════════════════════════════════════════════════════
+// СТАРТ
+// ══════════════════════════════════════════════════════════
+init();
 </script>
 </body>
 </html>
